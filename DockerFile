@@ -1,0 +1,54 @@
+# --- Stage 1: Build stage ---
+# We use a specific Python version and name this stage 'builder'.
+FROM python:3.12-slim as builder
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install Poetry - it's a build-time dependency
+RUN pip install poetry
+
+# Copy only the files that define our dependencies
+COPY pyproject.toml poetry.lock ./
+
+# Configure Poetry to create the virtual env in the project's root (.venv)
+# This makes the location predictable and easy to copy.
+RUN poetry config virtualenvs.in-project true
+
+# Install project dependencies, but not the project itself
+RUN poetry install --no-root
+
+
+# --- Stage 2: Final stage ---
+# Start from a clean, lightweight Python image
+FROM python:3.12-slim
+
+# --- ADDED FOR SECURITY ---
+# Create a non-root user and group for the application
+RUN groupadd -r appuser && useradd --no-log-init -r -g appuser appuser
+# -------------------------
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the virtual environment from the builder stage
+COPY --from=builder /app/.venv ./.venv
+
+# Add the virtual environment's bin to the PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
+# --- UPDATED FOR SECURITY ---
+# Copy our application's source code and set correct permissions
+COPY --chown=appuser:appuser ./src/app /app/app
+# ---------------------------
+
+# --- ADDED FOR SECURITY ---
+# Switch to the non-root user
+USER appuser
+# -------------------------
+
+# Expose the port that Uvicorn will run on
+EXPOSE 8000
+
+# The command to run when the container starts.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
