@@ -21,7 +21,7 @@ from src.app.core.exceptions import (
     TokenRevoked,
     RateLimitExceeded,
 )
-
+from src.app.models.user_model import User, UserRole
 from src.app.services.user_service import UserService
 from src.app.services.rate_limit_service import (
     RateLimitService,
@@ -68,7 +68,8 @@ async def _authenticate_user_from_token(
     # Brute-force protection (auth attempts)
     lockout_seconds = int(getattr(settings, "AUTH_LOCKOUT_SECONDS", 300))
     if await rate_limit_svc.is_auth_rate_limited(
-        client_ip, max_attempts=5, lockout_seconds=lockout_seconds
+        client_ip,
+        max_attempts=5,
     ):
         raise RateLimitExceeded(
             detail="Too many failed authentication attempts.",
@@ -107,12 +108,25 @@ async def _authenticate_user_from_token(
         )
         raise InvalidToken(detail="Token is missing 'iat' claim.", token_type="access")
 
+    # if user.tokens_valid_from_utc:
+    #     token_issued_at = datetime.fromtimestamp(iat, tz=timezone.utc)
+    #     if token_issued_at < user.tokens_valid_from_utc:
+    #         await rate_limit_svc.record_failed_auth_attempt(
+    #             client_ip, lockout_duration=lockout_seconds
+    #         )
+    #         raise TokenRevoked()
+
     if user.tokens_valid_from_utc:
         token_issued_at = datetime.fromtimestamp(iat, tz=timezone.utc)
-        if token_issued_at < user.tokens_valid_from_utc:
-            await rate_limit_svc.record_failed_auth_attempt(
-                client_ip, lockout_duration=lockout_seconds
-            )
+
+        # Defensively handle the type from the cache
+        revocation_timestamp = user.tokens_valid_from_utc
+        if isinstance(revocation_timestamp, str):
+            revocation_timestamp = datetime.fromisoformat(revocation_timestamp)
+
+        # Now, both are guaranteed to be datetime objects
+        if token_issued_at < revocation_timestamp:
+            await rate_limit_svc.record_failed_auth_attempt(client_ip)
             raise TokenRevoked()
 
     # Success path: clear failures and attach to request
@@ -159,6 +173,40 @@ async def get_current_verified_user(
         )
         raise UnverifiedUser()
     return current_user
+
+
+class RoleChecker:
+    """
+    Dependency class for role-based access control.
+    Uses hierarchical role checking based on UserRole enum priorities.
+    """
+
+    def __init__(self, required_role: UserRole):
+        self.required_role = required_role
+
+    def __call__(
+        self, request: Request, current_user: User = Depends(get_current_active_user)
+    ) -> User:
+        """Check if user has sufficient role privileges."""
+        if current_user.role < self.required_role:
+            logger.warning(
+                "Insufficient privileges for user.",
+                extra={
+                    "user_id": str(current_user.id),
+                    "user_role": current_user.role.value,
+                    "required_role": self.required_role.value,
+                    "path": request.url.path,
+                },
+            )
+            raise NotAuthorized(
+                detail=f"Insufficient privileges. A role of '{self.required_role.value}' or higher is required."
+            )
+        return current_user
+
+
+# Role-based dependency instances
+require_user = RoleChecker(UserRole.USER)
+require_admin = RoleChecker(UserRole.ADMIN)
 
 
 # ================== RATE LIMITING ==================

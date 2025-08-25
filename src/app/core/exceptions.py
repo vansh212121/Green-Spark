@@ -1,25 +1,10 @@
-from __future__ import annotations
-
-import json
 from enum import Enum
-from http import HTTPStatus
-from typing import Any, Dict, List, Optional
-
-
-def _json_safe(obj: Any) -> Any:
-    """Best-effort conversion of arbitrary objects to JSON-serializable structures."""
-    try:
-        json.dumps(obj)
-        return obj
-    except TypeError:
-        if isinstance(obj, dict):
-            return {str(k): _json_safe(v) for k, v in obj.items()}
-        if isinstance(obj, (list, tuple, set)):
-            return [_json_safe(v) for v in obj]
-        return str(obj)
+from typing import Dict, Optional, Any, List
 
 
 class ErrorCode(str, Enum):
+    """Enumeration of error codes for consistent error identification."""
+
     # Authentication/Authorization
     INVALID_CREDENTIALS = "INVALID_CREDENTIALS"
     NOT_AUTHORIZED = "NOT_AUTHORIZED"
@@ -63,8 +48,8 @@ class AppException(Exception):
     """
     Base exception class for all custom application exceptions.
 
-    Provides consistent interface for application-specific exceptions,
-    including HTTP status codes and structured error details.
+    This class provides a consistent interface for all application-specific
+    exceptions, including HTTP status codes and structured error details.
     """
 
     def __init__(
@@ -75,10 +60,10 @@ class AppException(Exception):
         headers: Optional[Dict[str, str]] = None,
         context: Optional[Dict[str, Any]] = None,
     ) -> None:
-        self.status_code = int(status_code)
+        self.status_code = status_code
         self.detail = detail
         self.error_code = error_code or self.__class__.__name__
-        self.headers = headers or {}
+        self.headers = headers
         self.context = context or {}
         super().__init__(detail)
 
@@ -88,13 +73,10 @@ class AppException(Exception):
             "error": {
                 "code": self.error_code,
                 "message": self.detail,
-                "status_code": int(self.status_code),
-                "context": _json_safe(self.context),
+                "status_code": self.status_code,
+                "context": self.context,
             }
         }
-
-    def __str__(self) -> str:
-        return f"{self.error_code}({self.status_code}): {self.detail}"
 
 
 # ---- Authentication/Authorization Exceptions ----
@@ -109,14 +91,13 @@ class InvalidCredentials(AuthenticationError):
 
     def __init__(
         self,
-        detail: str = "Incorrect email or password.",
+        detail: str = "Incorrect email or password",
         context: Optional[Dict[str, Any]] = None,
     ) -> None:
         super().__init__(
-            status_code=int(HTTPStatus.UNAUTHORIZED),
+            status_code=401,
             detail=detail,
             error_code=ErrorCode.INVALID_CREDENTIALS,
-            headers={"WWW-Authenticate": "Bearer"},
             context=context,
         )
 
@@ -130,14 +111,15 @@ class NotAuthorized(AuthenticationError):
         resource: Optional[str] = None,
         action: Optional[str] = None,
     ) -> None:
-        context: Dict[str, Any] = {}
+
+        context = {}
         if resource:
             context["resource"] = resource
         if action:
-            context["action"] = action  # Fixed: was context[action] = action
+            context[action] = action
 
         super().__init__(
-            status_code=int(HTTPStatus.FORBIDDEN),
+            status_code=403,
             detail=detail,
             error_code=ErrorCode.NOT_AUTHORIZED,
             context=context,
@@ -154,7 +136,7 @@ class InactiveUser(AuthenticationError):
     ) -> None:
         context = {"user_id": user_id} if user_id else {}
         super().__init__(
-            status_code=int(HTTPStatus.FORBIDDEN),
+            status_code=403,
             detail=detail,
             error_code=ErrorCode.INACTIVE_USER,
             context=context,
@@ -171,7 +153,7 @@ class UnverifiedUser(AuthenticationError):
     ) -> None:
         context = {"user_id": user_id} if user_id else {}
         super().__init__(
-            status_code=int(HTTPStatus.FORBIDDEN),
+            status_code=403,
             detail=detail,
             error_code=ErrorCode.UNVERIFIED_USER,
             context=context,
@@ -186,17 +168,18 @@ class BadRequestException(AppException):
         detail: str = "This request is invalid.",
         context: Optional[Dict[str, Any]] = None,
     ) -> None:
+
+        context = {}
         super().__init__(
-            status_code=int(HTTPStatus.BAD_REQUEST),
+            status_code=400,
             detail=detail,
             error_code=ErrorCode.BAD_REQUEST,
-            context=context or {},  # Fixed: preserve provided context
+            context=context,
         )
-
 
 # ---- Resource Exceptions ----
 class ResourceNotFound(AppException):
-    """Raised when a resource can't be found."""
+    """Base class for resource not found exceptions."""
 
     def __init__(
         self,
@@ -206,9 +189,11 @@ class ResourceNotFound(AppException):
     ) -> None:
         if not detail:
             detail = f"{resource_type} not found"
+
         context = {"resource_type": resource_type, "resource_id": resource_id}
+
         super().__init__(
-            status_code=int(HTTPStatus.NOT_FOUND),
+            status_code=404,
             detail=detail,
             error_code=ErrorCode.RESOURCE_NOT_FOUND,
             context=context,
@@ -216,7 +201,7 @@ class ResourceNotFound(AppException):
 
 
 class ResourceAlreadyExists(AppException):
-    """Raised when a resource already exists."""
+    """Base class for resource already exists exceptions."""
 
     def __init__(
         self,
@@ -227,8 +212,9 @@ class ResourceAlreadyExists(AppException):
         if not detail:
             detail = f"{resource_type} already exists"
         context = {"resource_type": resource_type, "identifier": identifier or {}}
+
         super().__init__(
-            status_code=int(HTTPStatus.CONFLICT),
+            status_code=409,
             detail=detail,
             error_code=ErrorCode.RESOURCE_ALREADY_EXISTS,
             context=context,
@@ -245,11 +231,12 @@ class ValidationError(AppException):
         errors: Optional[List[Dict[str, Any]]] = None,
         field: Optional[str] = None,
     ) -> None:
-        context: Dict[str, Any] = {"errors": errors or []}
+        context = {"errors": errors or []}
         if field:
             context["field"] = field
+
         super().__init__(
-            status_code=int(HTTPStatus.UNPROCESSABLE_ENTITY),
+            status_code=422,
             detail=detail,
             error_code=ErrorCode.VALIDATION_ERROR,
             context=context,
@@ -262,13 +249,14 @@ class InvalidInput(AppException):
     def __init__(
         self, detail: str, field: Optional[str] = None, value: Optional[Any] = None
     ) -> None:
-        context: Dict[str, Any] = {}
+        context = {}
         if field:
             context["field"] = field
         if value is not None:
             context["value"] = str(value)
+
         super().__init__(
-            status_code=int(HTTPStatus.BAD_REQUEST),
+            status_code=400,
             detail=detail,
             error_code=ErrorCode.INVALID_INPUT,
             context=context,
@@ -285,17 +273,17 @@ class ServiceUnavailable(AppException):
         service: Optional[str] = None,
         retry_after: Optional[int] = None,
     ) -> None:
-        headers: Dict[str, str] = {}
-        context: Dict[str, Any] = {}
+        headers = {}
+        context = {}
 
-        if retry_after is not None:
+        if retry_after:
             headers["Retry-After"] = str(retry_after)
             context["retry_after"] = retry_after
         if service:
             context["service"] = service
 
         super().__init__(
-            status_code=int(HTTPStatus.SERVICE_UNAVAILABLE),
+            status_code=503,
             detail=detail,
             error_code=ErrorCode.SERVICE_UNAVAILABLE,
             headers=headers,
@@ -313,28 +301,27 @@ class InternalServerError(AppException):
     ) -> None:
         context = {"error_id": error_id} if error_id else {}
         super().__init__(
-            status_code=int(HTTPStatus.INTERNAL_SERVER_ERROR),
+            status_code=500,
             detail=detail,
             error_code=ErrorCode.INTERNAL_SERVER_ERROR,
             context=context,
         )
 
 
-# ---- Token Exceptions ----
+# ---- Token Exceptions-----
 class InvalidToken(AuthenticationError):
     """Raised when a token is invalid or malformed."""
 
     def __init__(
         self,
-        detail: str = "Token is invalid or has expired.",
+        detail: str = "Token is invalid or has expired",
         token_type: Optional[str] = None,
     ) -> None:
         context = {"token_type": token_type} if token_type else {}
         super().__init__(
-            status_code=int(HTTPStatus.UNAUTHORIZED),
+            status_code=401,
             detail=detail,
             error_code=ErrorCode.INVALID_TOKEN,
-            headers={"WWW-Authenticate": "Bearer"},
             context=context,
         )
 
@@ -343,14 +330,13 @@ class TokenExpired(AuthenticationError):
     """Raised when a token has expired."""
 
     def __init__(
-        self, detail: str = "Token has expired.", token_type: Optional[str] = None
+        self, detail: str = "Token has expired", token_type: Optional[str] = None
     ) -> None:
         context = {"token_type": token_type} if token_type else {}
         super().__init__(
-            status_code=int(HTTPStatus.UNAUTHORIZED),
+            status_code=401,
             detail=detail,
             error_code=ErrorCode.TOKEN_EXPIRED,
-            headers={"WWW-Authenticate": "Bearer"},
             context=context,
         )
 
@@ -360,18 +346,18 @@ class TokenTypeInvalid(AuthenticationError):
 
     def __init__(
         self,
-        detail: str = "Invalid token type for this operation.",
+        detail: str = "Invalid token type for this operation",
         expected: Optional[str] = None,
         received: Optional[str] = None,
     ) -> None:
-        context: Dict[str, Any] = {}
+        context = {}
         if expected:
             context["expected_type"] = expected
         if received:
             context["received_type"] = received
 
         super().__init__(
-            status_code=int(HTTPStatus.UNAUTHORIZED),
+            status_code=401,
             detail=detail,
             error_code=ErrorCode.TOKEN_TYPE_INVALID,
             context=context,
@@ -386,9 +372,9 @@ class TokenRevoked(AuthenticationError):
         self, detail: str = "This token has been revoked and can no longer be used."
     ) -> None:
         super().__init__(
-            status_code=int(HTTPStatus.UNAUTHORIZED),
+            status_code=401,
             detail=detail,
-            error_code=ErrorCode.TOKEN_REVOKED,
+            error_code=ErrorCode.TOKEN_REVOKED,  # Make sure this is in your ErrorCode enum
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -400,7 +386,7 @@ class BusinessLogicError(AppException):
     def __init__(self, detail: str, rule: Optional[str] = None) -> None:
         context = {"rule": rule} if rule else {}
         super().__init__(
-            status_code=int(HTTPStatus.BAD_REQUEST),
+            status_code=400,
             detail=detail,
             error_code=ErrorCode.BUSINESS_LOGIC_ERROR,
             context=context,
@@ -413,14 +399,14 @@ class OperationNotAllowed(AppException):
     def __init__(
         self, detail: str, operation: Optional[str] = None, reason: Optional[str] = None
     ) -> None:
-        context: Dict[str, Any] = {}
+        context = {}
         if operation:
             context["operation"] = operation
         if reason:
             context["reason"] = reason
 
         super().__init__(
-            status_code=int(HTTPStatus.BAD_REQUEST),
+            status_code=400,
             detail=detail,
             error_code=ErrorCode.OPERATION_NOT_ALLOWED,
             context=context,
@@ -436,15 +422,15 @@ class RateLimitExceeded(AppException):
         detail: str = "Rate limit exceeded. Please try again later.",
         retry_after: Optional[int] = None,
     ) -> None:
-        headers: Dict[str, str] = {}
-        context: Dict[str, Any] = {}
+        headers = {}
+        context = {}
 
-        if retry_after is not None:
+        if retry_after:
             headers["Retry-After"] = str(retry_after)
             context["retry_after"] = retry_after
 
         super().__init__(
-            status_code=int(HTTPStatus.TOO_MANY_REQUESTS),
+            status_code=429,
             detail=detail,
             error_code=ErrorCode.RATE_LIMIT_EXCEEDED,
             headers=headers,

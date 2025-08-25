@@ -8,12 +8,15 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./src/app:/app/app # mount source code for hot reload
+      # This correctly mounts your entire src directory
+      - ./src:/app/src
+    # --- COMMAND CORRECTED to be aware of the 'src' layout ---
     command: >
-      uvicorn app.main:app
+      uvicorn src.app.main:app
       --host 0.0.0.0
       --port 8000
       --reload
+      --reload-dir /app/src
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,18 +25,15 @@ services:
       minio:
         condition: service_started
 
-  # --- ADDED CELERY WORKER SERVICE ---
   worker:
     build: .
     container_name: greenspark-worker
     env_file: .env
     volumes:
-      - ./src/app:/app/app # Mount for hot-reloading on code changes
-    # This command starts the celery worker.
-    # IMPORTANT: Adjust 'app.core.celery_worker.celery_app' to the correct path
-    # where your Celery app instance is defined in your project.
+      - ./src:/app/src
+    # --- THIS IS THE CORRECTED COMMAND ---
     command: >
-      celery -A app.core.celery_worker.celery_app worker --loglevel=info
+      celery -A src.celery_worker worker --loglevel=info
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,6 +41,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+
   # -----------------------------------
 
   postgres:

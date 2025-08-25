@@ -20,7 +20,7 @@ dependencies = [
     "boto3 (>=1.40.15,<2.0.0)",
     "pydantic[email] (>=2.11.7,<3.0.0)",
     "asyncpg (>=0.30.0,<0.31.0)",
-    "psycopg2 (>=2.9.10,<3.0.0)",
+    
     "passlib (>=1.7.4,<2.0.0)",
     "bcrypt (>=4.3.0,<5.0.0)",
     "python-jose (>=3.5.0,<4.0.0)",
@@ -28,7 +28,8 @@ dependencies = [
     "python-multipart (>=0.0.20,<0.0.21)",
     "fastapi-mail (>=1.5.0,<2.0.0)",
     "asgiref (>=3.9.1,<4.0.0)",
-    "eventlet (>=0.40.2,<0.41.0)"
+    "eventlet (>=0.40.2,<0.41.0)",
+    "psycopg2-binary (>=2.9.10,<3.0.0)"
 ]
 [tool.poetry]
 packages = [{ include = "app", from = "src" }]

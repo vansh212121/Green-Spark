@@ -208,8 +208,7 @@ class TokenManager:
                 algorithms=[self.config.JWT_ALGORITHM],
                 audience=self.config.TOKEN_AUDIENCE,
                 issuer=self.config.TOKEN_ISSUER,
-                options=None,
-                leeway=self.config.JWT_LEEWAY_SECONDS,
+                options={"leeway": self.config.JWT_LEEWAY_SECONDS},
             )
 
             token_type = payload.get("type")
@@ -229,10 +228,18 @@ class TokenManager:
 
             return payload
 
-        except ExpiredSignatureError:
+        except jwt.ExpiredSignatureError:
             raise TokenExpired() from None
+
+        # 2. Specifically catch other known JWT errors
         except JWTError as e:
-            raise InvalidToken(f"Token is invalid: {e}") from e
+            raise InvalidToken(f"Token signature or claims are invalid: {e}") from e
+
+        # 3. Catch ANY other exception (like "Not enough segments", etc.)
+        #    and wrap it in our standard InvalidToken error to prevent a 500.
+        except Exception as e:
+            logger.warning(f"Token decode failed with an unexpected error: {e}")
+            raise InvalidToken("Token is invalid or malformed.") from e
 
     # ---- Blacklist operations ----
     async def revoke_token(self, token: str, reason: str = "Revoked") -> bool:
@@ -356,6 +363,7 @@ def constant_time_compare(val1: str, val2: str) -> bool:
 # ---- Singleton Instances ----
 password_manager = PasswordManager()
 token_manager = TokenManager()
+
 
 class SecurityHeaders:
     """Centralized definition of security headers for API responses."""

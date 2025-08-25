@@ -7,7 +7,8 @@ from src.app.core.exception_handler import register_exception_handlers
 from src.app.core.middleware import register_middlewares
 from src.app.db.session import db
 from src.app.utils.deps import get_health_status
-
+from src.app.api.v1.endpoints import user, auth, admin
+from src.app.db import base
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,6 +41,9 @@ def create_application() -> FastAPI:
     register_exception_handlers(app)
 
     # Include your routers here later
+    app.include_router(auth.router)
+    app.include_router(user.router)
+    app.include_router(admin.router)
 
     return app
 

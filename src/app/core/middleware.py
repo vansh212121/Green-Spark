@@ -31,14 +31,6 @@ def _get_header(scope: Scope, name: str) -> Optional[str]:
     return None
 
 
-def _ensure_state(scope: Scope) -> State:
-    state = scope.get("state")
-    if not isinstance(state, State):
-        state = State()
-        scope["state"] = state
-    return state
-
-
 def _parse_query_params(scope: Scope) -> List[Tuple[str, str]]:
     try:
         from urllib.parse import parse_qsl
@@ -169,13 +161,17 @@ class ProfessionalLoggingMiddleware:
         method = scope.get("method") or "GET"
         should_log = path not in self.exclude_paths
 
-        state = _ensure_state(scope)
-        # Pull request id from accepted headers or generate one
+        if "state" not in scope:
+            scope["state"] = {}
+
         incoming_request_id = None
         for h in self.accept_request_id_headers:
             incoming_request_id = incoming_request_id or _get_header(scope, h)
+
         request_id = incoming_request_id or str(uuid.uuid4())
-        setattr(state, "request_id", request_id)
+
+        # Directly set the attribute on the state object provided by the framework
+        scope["state"]["request_id"] = request_id
 
         # Sanitize query params for logging
         params = _sanitize_params(_parse_query_params(scope), self.mask_query_params)
