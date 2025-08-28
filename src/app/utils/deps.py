@@ -184,23 +184,51 @@ class RoleChecker:
     def __init__(self, required_role: UserRole):
         self.required_role = required_role
 
+    # def __call__(
+    #     self, request: Request, current_user: User = Depends(get_current_active_user)
+    # ) -> User:
+    #     """Check if user has sufficient role privileges."""
+    #     if current_user.role < self.required_role:
+    #         logger.warning(
+    #             "Insufficient privileges for user.",
+    #             extra={
+    #                 "user_id": str(current_user.id),
+    #                 "user_role": current_user.role.value,
+    #                 "required_role": self.required_role.value,
+    #                 "path": request.url.path,
+    #             },
+    #         )
+    #         raise NotAuthorized(
+    #             detail=f"Insufficient privileges. A role of '{self.required_role.value}' or higher is required."
+    #         )
+    #     return current_user
+
     def __call__(
         self, request: Request, current_user: User = Depends(get_current_active_user)
     ) -> User:
         """Check if user has sufficient role privileges."""
-        if current_user.role < self.required_role:
+
+        # --- THIS IS THE FINAL, ROBUST FIX ---
+        # 1. Explicitly convert the current user's role (which might be a string)
+        #    into a UserRole enum object.
+        current_user_role_enum = UserRole(current_user.role)
+
+        # 2. Compare the integer priorities directly. This is foolproof.
+        #    e.g., ADMIN (priority 2) is NOT less than USER (priority 1).
+        if current_user_role_enum.priority < self.required_role.priority:
             logger.warning(
                 "Insufficient privileges for user.",
                 extra={
                     "user_id": str(current_user.id),
-                    "user_role": current_user.role.value,
+                    "user_role": current_user.role,
                     "required_role": self.required_role.value,
                     "path": request.url.path,
                 },
             )
             raise NotAuthorized(
-                detail=f"Insufficient privileges. A role of '{self.required_role.value}' or higher is required."
+                f"Insufficient privileges. A role of '{self.required_role.value}' or higher is required."
             )
+
         return current_user
 
 

@@ -63,12 +63,13 @@ class UserService:
         Raises:
             NotAuthorized: If user lacks permission for the action
         """
+
         # Admins have super powers
         if current_user.is_admin:
             return
 
         # Users can only modify their own account
-        is_not_self = current_user.id != target_user.id
+        is_not_self = str(current_user.id) != str(target_user.id)
         raise_for_status(
             condition=is_not_self,
             exception=NotAuthorized,
@@ -257,8 +258,13 @@ class UserService:
     ) -> User:
         """Updates a user after performing necessary authorization checks."""
 
-        user_to_update = await self.get_user_by_id(
-            db=db, user_id=user_id_to_update, current_user=current_user
+        user_to_update = await self.user_repository.get(db=db, obj_id=user_id_to_update)
+
+        raise_for_status(
+            condition=(user_to_update is None),
+            exception=ResourceNotFound,
+            detail=f"User not Found",
+            resource_type="User",
         )
 
         self._check_authorization(
@@ -318,7 +324,7 @@ class UserService:
             condition=(user_to_deactivate is None),
             exception=ResourceNotFound,
             detail=f"User not Found",
-            resource_type="User"
+            resource_type="User",
         )
 
         # 2. Perform authorization check

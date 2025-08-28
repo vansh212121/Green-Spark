@@ -62,7 +62,6 @@ class BillBase(SQLModel):
         )
     )
 
-
 class Bill(BillBase, table=True):
     __tablename__ = "bills"
 

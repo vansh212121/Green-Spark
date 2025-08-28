@@ -33,7 +33,7 @@ services:
       - ./src:/app/src
     # --- THIS IS THE CORRECTED COMMAND ---
     command: >
-      celery -A src.celery_worker worker --loglevel=info
+      celery -A src.celery_worker worker -P eventlet --loglevel=info
     depends_on:
       postgres:
         condition: service_healthy

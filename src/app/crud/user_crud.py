@@ -104,19 +104,23 @@ class UserRepository(BaseRepository[User]):
         order_desc: bool = True,
     ) -> Tuple[List[User], int]:
         """Get multiple users with filtering and pagination."""
+        query = select(self.model)
 
-        data_query = (
-            select(self.model)
-            .offset(skip)
-            .limit(limit)
-            .order_by(self.model.created_at.desc())
-        )
-        count_query = select(func.count(self.model.id))
+        # Apply filters
+        if filters:
+            query = self._apply_filters(query, filters)
 
-        # Execute both queries concurrently
-        results = await asyncio.gather(db.execute(data_query), db.execute(count_query))
-        users = results[0].scalars().all()
-        total = results[1].scalar_one()
+        # Count total
+        count_query = select(func.count()).select_from(query.subquery())
+        total = (await db.execute(count_query)).scalar_one()
+
+        # Apply ordering
+        query = self._apply_ordering(query, order_by, order_desc)
+
+        # Apply pagination
+        paginated_query = query.offset(skip).limit(limit)
+        result = await db.execute(paginated_query)
+        users = result.scalars().all()
 
         return users, total
 
@@ -229,6 +233,9 @@ class UserRepository(BaseRepository[User]):
 
         if "role" in filters and filters["role"]:
             conditions.append(User.role == filters["role"])
+
+        if "timezone" in filters and filters["timezone"]:
+            conditions.append(User.timezone == filters["timezone"])
 
         if "is_active" in filters and filters["is_active"] is not None:
             conditions.append(User.is_active == filters["is_active"])
