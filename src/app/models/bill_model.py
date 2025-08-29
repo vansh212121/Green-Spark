@@ -37,7 +37,7 @@ class BillBase(SQLModel):
     kwh_total: float = Field(nullable=False)
     cost_total: float = Field(nullable=False)
     provider: str = Field(nullable=False)
-    normalized_json: Dict[str, Any] = Field(sa_column=Column(JSONB), default={})
+    normalized_json: Dict[str, Any] = Field(sa_column=Column(JSONB), default=None)
 
     # --- CORRECTED ENUM COLUMNS ---
     parse_status: BillStatus = Field(

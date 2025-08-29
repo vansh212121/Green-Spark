@@ -152,7 +152,7 @@ class BillRepository:
         statement = delete(self.model).where(self.model.id == bill_id)
         await db.execute(statement)
         await db.commit()
-        self._logger.info(f"User hard deleted: {bill_id}")
+        self._logger.info(f"Bill hard deleted: {bill_id}")
         return
 
     def _apply_filters(self, query, filters: Dict[str, Any]):

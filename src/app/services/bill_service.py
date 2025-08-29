@@ -14,7 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.app.crud.user_crud import user_repository
 from src.app.crud.bill_crud import bill_repository
 from src.app.schemas.bill_schema import (
-    BillUploadRequest,
+    BillDetailedResponse,
     BillListResponse,
     BillResponse,
     BillUploadResponse,
@@ -82,7 +82,7 @@ class BillService:
 
     async def _load_bill_schema_from_db(
         self, *, db: AsyncSession, bill_id: uuid.UUID
-    ) -> Optional[BillResponse]:
+    ) -> Optional[BillDetailedResponse]:
         """Private helper to load a user from the DB and convert it to a Pydantic schema.
         This is our "loader" function for the cache."""
 
@@ -93,15 +93,15 @@ class BillService:
             detail=f"Bill with {bill_id} not Found.",
             resource_type="Bill",
         )
-        return BillResponse.model_validate(bill_model)
+        return BillDetailedResponse.model_validate(bill_model)
 
     async def get_bill_by_id(
         self, db: AsyncSession, *, bill_id: uuid.UUID, current_user: User
-    ) -> Optional[BillResponse]:
+    ) -> Optional[BillDetailedResponse]:
         """Retrieve bill by it's ID"""
 
         bill = await cache_service.get_or_set(
-            schema_type=BillResponse,
+            schema_type=BillDetailedResponse,
             obj_id=bill_id,
             loader=lambda: self._load_bill_schema_from_db(db=db, bill_id=bill_id),
             ttl=300,  # Cache for 5 minutes
@@ -274,7 +274,9 @@ class BillService:
     ) -> None:
         """Deleted a bill by it's ID"""
 
-        bill_to_delete = await self.bill_repository.get(db=db, bill_id=bill_id_to_delete)
+        bill_to_delete = await self.bill_repository.get(
+            db=db, bill_id=bill_id_to_delete
+        )
 
         raise_for_status(
             condition=(bill_to_delete is None),

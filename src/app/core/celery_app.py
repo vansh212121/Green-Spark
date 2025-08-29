@@ -1,6 +1,7 @@
 from celery import Celery
 from src.app.core.config import settings
-from celery.signals import on_after_configure
+from src.app.models import Bill, User
+
 # Define the Celery application instance.
 # We point the broker and backend to the same REDIS_URL from our settings.
 celery_app = Celery(
@@ -27,18 +28,3 @@ celery_app.conf.imports = [
     "src.app.tasks.email_tasks",
     "src.app.tasks.parsing_tasks",
 ]
-
-
-# --- THIS IS THE NEW, ROBUST FIX ---
-@on_after_configure.connect
-def load_all_sql_models(sender, **kwargs):
-    """
-    Signal handler to import all SQLModel classes when the worker starts.
-    This is crucial for ensuring SQLAlchemy's mappers are configured
-    correctly before any task that uses the database is executed.
-    """
-    # By importing here, we guarantee that all models are loaded into Python's
-    # memory in the worker process, making them known to SQLAlchemy.
-    from src.app import models  # noqa
-
-# ------------------------------------

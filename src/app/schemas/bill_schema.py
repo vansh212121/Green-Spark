@@ -170,9 +170,14 @@ class NormalizedBillSchema(BaseModel):
 class BillDetailedResponse(BillResponse):
     """Detailed response for bill"""
 
-    model_config = ConfigDict(from_attributes=True)
-    # add all the normalized schemas on this response
-    details: NormalizedBillSchema = Field(..., alias="normalized_json")
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    details: Optional[NormalizedBillSchema] = Field(
+        None,
+        alias="normalized_json",
+        validation_alias="normalized_json",  # 👈 ensures it maps correctly
+        description="Structured normalized bill data",
+    )
 
 
 class BillListResponse(BaseModel):
