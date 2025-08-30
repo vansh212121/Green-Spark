@@ -8,16 +8,11 @@ from sqlalchemy import func, Column, DateTime
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlmodel import Field, SQLModel, Relationship
 
-# --- CORRECTED TYPE CHECKING ---
-# We only need to import models from other files here.
 if TYPE_CHECKING:
     from src.app.models.user_model import User
     from src.app.models.bill_model import Bill
 
 
-# ---------------------------------------------------------------------------
-# 1. Appliance Catalog: The pre-seeded lookup table. (No changes needed)
-# ---------------------------------------------------------------------------
 class ApplianceCatalog(SQLModel, table=True):
     __tablename__ = "appliance_catalog"
 
@@ -30,10 +25,6 @@ class ApplianceCatalog(SQLModel, table=True):
         return f"<ApplianceCatalog(id='{self.category_id}', label='{self.label}')>"
 
 
-# ---------------------------------------------------------------------------
-# 2. User Appliance: The user's personal inventory of appliances.
-# ---------------------------------------------------------------------------
-# --- RENAMED for clarity ---
 class UserApplianceBase(SQLModel):
     appliance_catalog_id: Optional[str] = Field(
         default=None, foreign_key="appliance_catalog.category_id"
@@ -50,21 +41,21 @@ class UserApplianceBase(SQLModel):
     notes: Optional[str] = Field(default=None)
 
 
-# --- RENAMED for clarity ---
 class UserAppliance(UserApplianceBase, table=True):
     __tablename__ = "user_appliances"
 
     id: uuid.UUID = Field(
-            default_factory=uuid.uuid4,
-            sa_column=Column(
-                PG_UUID(as_uuid=True),
-                server_default=func.gen_random_uuid(),
-                primary_key=True,
-                index=True,
-                nullable=False,
-            ),
-        )
+        default_factory=uuid.uuid4,
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            server_default=func.gen_random_uuid(),
+            primary_key=True,
+            index=True,
+            nullable=False,
+        ),
+    )
     user_id: uuid.UUID = Field(foreign_key="users.id", index=True, nullable=False)
+    bill_id: uuid.UUID = Field(foreign_key="bills.id", index=True, nullable=False)
 
     created_at: datetime = Field(
         sa_column=Column(
@@ -80,18 +71,14 @@ class UserAppliance(UserApplianceBase, table=True):
         )
     )
 
-    # --- REFINED RELATIONSHIPS ---
     user: "User" = Relationship(back_populates="user_appliances")
+    bill: "Bill" = Relationship(back_populates="user_appliances")
     estimates: List["ApplianceEstimate"] = Relationship(back_populates="user_appliance")
 
-    # --- CORRECTED __repr__ ---
     def __repr__(self) -> str:
         return f"<UserAppliance(id='{self.id}', user_id='{self.user_id}', custom_name='{self.custom_name}')>"
 
 
-# ---------------------------------------------------------------------------
-# 3. Appliance Estimate: Stores the calculated estimate for one appliance on one bill.
-# ---------------------------------------------------------------------------
 class ApplianceEstimateBase(SQLModel):
     estimated_kwh: float
     estimated_cost: float
@@ -116,12 +103,8 @@ class ApplianceEstimate(ApplianceEstimateBase, table=True):
         foreign_key="user_appliances.id", index=True, nullable=False
     )
 
-    # --- REFINED RELATIONSHIPS ---
     bill: "Bill" = Relationship(back_populates="estimates")
-    user_appliance: "UserAppliance" = Relationship(
-        back_populates="estimates"
-    )  # Renamed from "Appliance"
+    user_appliance: "UserAppliance" = Relationship(back_populates="estimates")
 
-    # --- CORRECTED __repr__ ---
     def __repr__(self) -> str:
         return f"<ApplianceEstimate(id='{self.id}', bill_id='{self.bill_id}')>"

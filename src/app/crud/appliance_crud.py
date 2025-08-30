@@ -228,6 +228,18 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
         default_exception=InternalServerError,
         message="An unexpected database error occurred.",
     )
+    async def exists(
+        self, db: AsyncSession, *, label: str
+    ) -> Optional[ApplianceCatalog]:
+        """Check if an appliance already exists with the same label"""
+        statement = select(ApplianceCatalog).where(ApplianceCatalog.label == label)
+        result = await db.execute(statement)
+        return result.scalar_one_or_none()
+
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
     async def get_catalog_items(self, db: AsyncSession) -> List[ApplianceCatalog]:
         """Get all appliance catalog items."""
         statement = select(ApplianceCatalog).order_by(ApplianceCatalog.label)

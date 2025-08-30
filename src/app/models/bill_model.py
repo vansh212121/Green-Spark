@@ -12,7 +12,7 @@ from sqlmodel import Field, SQLModel, Relationship
 
 if TYPE_CHECKING:
     from src.app.models.user_model import User
-    from src.app.models.appliance_model import ApplianceEstimate
+    from src.app.models.appliance_model import ApplianceEstimate, UserAppliance
     from src.app.models.insights_model import Insight
 
 
@@ -62,22 +62,24 @@ class BillBase(SQLModel):
         )
     )
 
+
 class Bill(BillBase, table=True):
     __tablename__ = "bills"
 
     id: uuid.UUID = Field(
-            default_factory=uuid.uuid4,
-            sa_column=Column(
-                PG_UUID(as_uuid=True),
-                server_default=func.gen_random_uuid(),
-                primary_key=True,
-                index=True,
-                nullable=False,
-            ),
-        )
+        default_factory=uuid.uuid4,
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            server_default=func.gen_random_uuid(),
+            primary_key=True,
+            index=True,
+            nullable=False,
+        ),
+    )
 
     # RELATIONSHIPS
     user: "User" = Relationship(back_populates="bills")
+    user_appliances: List["UserAppliance"] = Relationship(back_populates="bill")
     estimates: List["ApplianceEstimate"] = Relationship(back_populates="bill")
     insight: Optional["Insight"] = Relationship(back_populates="bill")
 

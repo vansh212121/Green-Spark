@@ -1,8 +1,8 @@
-# app/services/user_service.py
+# app/services/bill_service.py
 """
 Bill service module.
 
-This module provides the business logic layer for user operations,
+This module provides the business logic layer for bill operations,
 handling authorization, validation, and orchestrating repository calls.
 """
 import uuid
@@ -31,7 +31,6 @@ from src.app.core.exception_utils import raise_for_status
 from src.app.core.exceptions import (
     ResourceNotFound,
     NotAuthorized,
-    InternalServerError,
     ValidationError,
 )
 from src.app.tasks.parsing_tasks import parse_digital_pdf_task
@@ -40,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 class BillService:
-    """Handles all user-related business logic."""
+    """Handles all bill-related business logic."""
 
     def __init__(self):
         """
