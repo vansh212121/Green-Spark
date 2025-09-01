@@ -12,14 +12,20 @@ from datetime import datetime, timezone
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.app.crud.appliance_crud import appliance_repository
+from src.app.crud.bill_crud import bill_repository
 from src.app.crud.user_crud import user_repository
-from src.app.models.appliance_model import ApplianceCatalog, UserAppliance
+from src.app.models.appliance_model import (
+    ApplianceCatalog,
+    UserAppliance,
+    ApplianceEstimate,
+)
 from src.app.models.user_model import User, UserRole
 from src.app.schemas.appliance_schema import (
     UserApplianceDetailedResponse,
     UserApplianceListResponse,
     UserApplianceCreate,
     UserApplianceUpdate,
+    ApplianceCatalogCreate,
 )
 from src.app.core.exception_utils import raise_for_status
 from src.app.services.cache_service import cache_service
@@ -44,6 +50,7 @@ class ApplianceService:
         while still allowing for dependency injection during tests.
         """
         self.appliance_repository = appliance_repository
+        self.bill_repository = bill_repository
         self.user_repository = user_repository
         self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
@@ -72,10 +79,10 @@ class ApplianceService:
         raise_for_status(
             condition=is_not_self,
             exception=NotAuthorized,
-            detail=f"You are not authorized to {action} this user.",
+            detail=f"You are not authorized to {action} this appliance.",
         )
 
-    async def _load_bill_schema_from_db(
+    async def _load_appliance_schema_from_db(
         self, *, db: AsyncSession, appliance_id: uuid.UUID
     ) -> Optional[UserApplianceDetailedResponse]:
         """Private helper to load a appliance from the DB and convert it to a Pydantic schema.
@@ -100,7 +107,7 @@ class ApplianceService:
         appliance = await cache_service.get_or_set(
             schema_type=UserApplianceDetailedResponse,
             obj_id=appliance_id,
-            loader=lambda: self._load_bill_schema_from_db(
+            loader=lambda: self._load_appliance_schema_from_db(
                 db=db, appliance_id=appliance_id
             ),
             ttl=300,  # Cache for 5 minutes
@@ -108,7 +115,7 @@ class ApplianceService:
 
         # Fine-grained authorization check
         if current_user.is_admin:
-            return appliance_id
+            return appliance
         is_not_self = current_user.id != appliance.user_id
 
         raise_for_status(
@@ -129,7 +136,6 @@ class ApplianceService:
         user_id: uuid.UUID,
         skip: int = 0,
         limit: int = 50,
-        filters: Optional[Dict[str, Any]] = None,
         order_by: str = "created_at",
         order_desc: bool = True,
     ) -> UserApplianceListResponse:
@@ -153,13 +159,15 @@ class ApplianceService:
             ValidationError: If pagination parameters are invalid
         """
         # Authorization check: admins can list all users
-        user = await self.appliance_repository.get(db=db, obj_id=user_id)
-
+        user = await self.user_repository.get(db=db, obj_id=user_id)
         raise_for_status(
-            condition=(user.role < UserRole.ADMIN),
-            exception=NotAuthorized,
-            detail="Only administrators can list users.",
+            condition=(user is None),
+            exception=ResourceNotFound,
+            detail=f"User with id {user_id} not Found",
+            resource_type="User",
         )
+        if user.role != UserRole.ADMIN:
+            raise NotAuthorized("only administrators can access this")
 
         # Input validation
         if skip < 0:
@@ -168,11 +176,81 @@ class ApplianceService:
             raise ValidationError("Limit must be between 1 and 100")
 
         # Delegate fetching to the repository
-        appliances, total = await self.appliance_repository.get_all(
+        appliances, total = await self.appliance_repository.get_by_user(
             db=db,
             skip=skip,
             limit=limit,
-            filters=filters,
+            user_id=user_id,
+            order_by=order_by,
+            order_desc=order_desc,
+        )
+
+        # Calculate pagination info
+        page = (skip // limit) + 1
+        total_pages = (total + limit - 1) // limit  # Ceiling division
+
+        # Construct the response schema
+        response = UserApplianceListResponse(
+            items=appliances, total=total, page=page, pages=total_pages, size=limit
+        )
+
+        return response
+
+    async def get_bill_appliances(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: uuid.UUID,
+        bill_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 50,
+        order_by: str = "created_at",
+        order_desc: bool = True,
+    ) -> UserApplianceListResponse:
+        """
+        Lists appliances with pagination and filtering.
+
+        Args:
+            db: Database session
+            current_user: User making the request
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            filters: Optional filters to apply
+            order_by: Field to order by
+            order_desc: Whether to order in descending order
+
+        Returns:
+            UserApplianceListResponse: Paginated list of users
+
+        Raises:
+            NotAuthorized: If user lacks permission to list users
+            ValidationError: If pagination parameters are invalid
+        """
+        # Authorization check: admins can list all users
+        bill = await self.bill_repository.get(db=db, bill_id=bill_id)
+        raise_for_status(
+            condition=(bill is None),
+            exception=ResourceNotFound,
+            detail=f"Bill with id {user_id} not Found",
+            resource_type="Bill",
+        )
+        user = await self.user_repository.get(db=db, obj_id=user_id)
+
+        if user.role != UserRole.ADMIN:
+            raise NotAuthorized("only administrators can access this")
+
+        # Input validation
+        if skip < 0:
+            raise ValidationError("Skip parameter must be non-negative")
+        if limit <= 0 or limit > 100:
+            raise ValidationError("Limit must be between 1 and 100")
+
+        # Delegate fetching to the repository
+        appliances, total = await self.appliance_repository.get_by_bills(
+            db=db,
+            skip=skip,
+            limit=limit,
+            bill_id=bill_id,
             order_by=order_by,
             order_desc=order_desc,
         )
@@ -189,9 +267,35 @@ class ApplianceService:
         return response
 
     async def create_appliance(
-        self, db: AsyncSession, *, current_user: User, appliance_in: UserApplianceCreate
+        self,
+        db: AsyncSession,
+        *,
+        current_user: User,
+        bill_id: uuid.UUID,
+        appliance_in: UserApplianceCreate,
     ) -> UserAppliance:
         """create a new appliance"""
+        bill = await self.bill_repository.get(db=db, bill_id=bill_id)
+        raise_for_status(
+            condition=(bill is None),
+            exception=ResourceNotFound,
+            detail=f"Bill with the id {bill_id} not Found.",
+            resource_type="Bill",
+        )
+
+        if bill.user_id != current_user.id and not current_user.role >= UserRole.ADMIN:
+            raise NotAuthorized(
+                "You are not authorized to add an appliance to this bill."
+            )
+
+        if appliance_in.appliance_catalog_id:
+            catalog_item = await self.appliance_repository.check_catalog_exists(
+                db=db, catalog_id=appliance_in.appliance_catalog_id
+            )
+            if not catalog_item:
+                raise ValidationError(
+                    f"Invalid appliance type '{appliance_in.appliance_catalog_id}' provided."
+                )
 
         existing_by_name = await self.appliance_repository.get_by_name_for_user(
             db=db, name=appliance_in.custom_name, user_id=current_user.id
@@ -205,6 +309,8 @@ class ApplianceService:
         appliance_dict = appliance_in.model_dump()
         appliance_dict["created_at"] = datetime.now(timezone.utc)
         appliance_dict["updated_at"] = datetime.now(timezone.utc)
+        appliance_dict["bill_id"] = bill_id
+        appliance_dict["user_id"] = current_user.id
 
         appliance_to_create = UserAppliance(**appliance_dict)
 
@@ -222,10 +328,24 @@ class ApplianceService:
         db: AsyncSession,
         *,
         current_user: User,
-        appliance_id: uuid.UUID,
+        bill_id: uuid.UUID,
+        appliance_id: str,
         appliance_data: UserApplianceUpdate,
     ) -> UserAppliance:
         """update an existing appliance"""
+
+        bill = await self.bill_repository.get(db=db, bill_id=bill_id)
+        raise_for_status(
+            condition=(bill is None),
+            exception=ResourceNotFound,
+            detail=f"Bill with the id {bill_id} not Found.",
+            resource_type="Bill",
+        )
+
+        if bill.user_id != current_user.id and not current_user.role >= UserRole.ADMIN:
+            raise NotAuthorized(
+                "You are not authorized to add an appliance to this bill."
+            )
 
         appliance_to_update = await appliance_repository.get(db=db, obj_id=appliance_id)
         raise_for_status(
@@ -239,7 +359,12 @@ class ApplianceService:
             current_user=current_user, appliance=appliance_to_update, action="Update"
         )
 
-        await self._validate_book_update(db, appliance_data, appliance_to_update)
+        await self._validate_appliance_update(
+            db=db,
+            appliance_data=appliance_data,
+            current_user=current_user,
+            existing_appliance=appliance_to_update,
+        )
 
         update_dict = appliance_data.model_dump(exclude_unset=True, exclude_none=True)
 
@@ -247,7 +372,7 @@ class ApplianceService:
         for ts_field in {"created_at", "updated_at"}:
             update_dict.pop(ts_field, None)
 
-        updated_book = await self.appliance_repository.update(
+        updated_appliance = await self.appliance_repository.update(
             db=db, appliance=appliance_to_update, fields_to_update=update_dict
         )
 
@@ -261,12 +386,30 @@ class ApplianceService:
                 "updated_fields": list(update_dict.keys()),
             },
         )
-        return updated_book
+        return updated_appliance
 
     async def delete_appliance(
-        self, db: AsyncSession, *, current_user: User, appliance_id: uuid.UUID
+        self,
+        db: AsyncSession,
+        *,
+        current_user: User,
+        bill_id: uuid.UUID,
+        appliance_id: uuid.UUID,
     ) -> None:
         """Delete an appliance by it's ID"""
+
+        bill = await self.bill_repository.get(db=db, bill_id=bill_id)
+        raise_for_status(
+            condition=(bill is None),
+            exception=ResourceNotFound,
+            detail=f"Bill with the id {bill_id} not Found.",
+            resource_type="Bill",
+        )
+
+        if bill.user_id != current_user.id and not current_user.role >= UserRole.ADMIN:
+            raise NotAuthorized(
+                "You are not authorized to add an appliance to this bill."
+            )
 
         appliance_to_delete = await self.appliance_repository.get(
             db=db, obj_id=appliance_id
@@ -296,16 +439,107 @@ class ApplianceService:
             extra={
                 "deleted_appliance_id": appliance_id,
                 "deleter_id": current_user.id,
-                "deleted_appliance_name": appliance_id.custom_name,
             },
         )
 
+    # =============Estimates=================
+    async def get_all_estimates(
+        self, db: AsyncSession, *, current_user: User, bill_id: uuid.UUID
+    ) -> List[ApplianceEstimate]:
+        """Get all estimates for a bill"""
+        bill = await self.bill_repository.get(db=db, bill_id=bill_id)
+        raise_for_status(
+            condition=(bill is None),
+            exception=ResourceNotFound,
+            detail=f"Bill with the id {bill_id} not Found.",
+            resource_type="Bill",
+        )
+
+        if bill.user_id != current_user.id and not current_user.role >= UserRole.ADMIN:
+            raise NotAuthorized(
+                "You are not authorized to add an appliance to this bill."
+            )
+            
+        return await self.appliance_repository.get_all_estimates(db=db, bill_id=bill_id)
+
+    # ==========CATALOG SERVICES============
     async def get_appliance_catalog(self, db: AsyncSession) -> List[ApplianceCatalog]:
         """Gets the list of common appliances from the catalog."""
 
         return await self.appliance_repository.get_catalog_items(db=db)
 
-    async def _validate_user_update(
+    async def create_catalog(
+        self,
+        db: AsyncSession,
+        *,
+        current_user: User,
+        catalog_in: ApplianceCatalogCreate,
+    ) -> ApplianceCatalog:
+        """Create a catlog (only admin)"""
+
+        user = await self.user_repository.get(db=db, obj_id=current_user.id)
+        raise_for_status(
+            condition=(user.role != UserRole.ADMIN),
+            exception=NotAuthorized,
+            detail="You are not Authorixed to perform this action",
+        )
+
+        catalog = await self.appliance_repository.check_catalog_exists(
+            db=db, catalog_id=catalog_in.category_id
+        )
+        raise_for_status(
+            condition=(catalog is not None),
+            exception=ResourceAlreadyExists,
+            detail=f"Catalog with id {catalog_in.category_id} already exists.",
+            resource_type="Catalog",
+        )
+
+        catalod_dict = catalog_in.model_dump()
+
+        appliance_to_create = ApplianceCatalog(**catalod_dict)
+
+        new_catalog = await self.appliance_repository.create_catalog(
+            db=db, catalog_in=appliance_to_create
+        )
+        await db.refresh(new_catalog)
+
+        self._logger.info(f"new_catalog created: {new_catalog.label}")
+
+        return new_catalog
+
+    async def delete_catalog(
+        self, db: AsyncSession, *, current_user: User, catalog_id: str
+    ) -> None:
+        """Delete a catalog by it's ID"""
+        user = await self.user_repository.get(db=db, obj_id=current_user.id)
+        raise_for_status(
+            condition=(user.role != UserRole.ADMIN),
+            exception=NotAuthorized,
+            detail="You are not Authorixed to perform this action",
+        )
+
+        catalog_to_delete = await self.appliance_repository.check_catalog_exists(
+            db=db, catalog_id=catalog_id
+        )
+        raise_for_status(
+            condition=(catalog_to_delete is None),
+            exception=ResourceNotFound,
+            detail=f"Catalog with id {catalog_id} not found.",
+            resource_type="Catalog",
+        )
+
+        # 4. Perform the deletion
+        await self.appliance_repository.delete_catalog(db=db, obj_id=catalog_id)
+
+        self._logger.warning(
+            f"Catalog {catalog_id} permanently deleted by {current_user.id}",
+            extra={
+                "deleted_catalog_id": catalog_id,
+                "deleter_id": current_user.id,
+            },
+        )
+
+    async def _validate_appliance_update(
         self,
         db: AsyncSession,
         appliance_data: UserApplianceUpdate,

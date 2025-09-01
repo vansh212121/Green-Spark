@@ -1,4 +1,5 @@
 import uuid
+import re
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime, date
@@ -8,7 +9,7 @@ from src.app.core.exceptions import ValidationError
 class UserApplianceBase(BaseModel):
     """Base schema for Appliances"""
 
-    appliance_catalog_id: uuid.UUID = Field(..., description="Appliance_catalog ID")
+    appliance_catalog_id: str = Field(..., description="Appliance_catalog ID")
     custom_name: str = Field(
         ...,
         min_length=1,
@@ -49,7 +50,6 @@ class UserApplianceBase(BaseModel):
         ...,
         ge=1,
         le=5,
-        pattern="^[1-5](\\.5)?$",
         description="Star rating of your appliance from 1 to 5",
     )
     purchase_year: Optional[int] = Field(
@@ -111,20 +111,23 @@ class UserApplianceBase(BaseModel):
         return self
 
 
-class UserApplianceCreate(BaseModel):
+class UserApplianceCreate(UserApplianceBase):
     """Schema for creating appliance"""
 
     @model_validator(mode="after")
     def check_wattage_source(self) -> "UserApplianceCreate":
         # When creating, user must either pick a catalog item or provide a custom wattage.
         if not self.appliance_catalog_id and not self.custom_wattage:
-            raise ValidationError("Either an appliance type from the catalog or a custom wattage must be provided.")
+            raise ValidationError(
+                "Either an appliance type from the catalog or a custom wattage must be provided."
+            )
         return self
 
 
 class UserApplianceUpdate(BaseModel):
     """Base schema for Appliances"""
 
+    appliance_catalog_id: Optional[str] = Field(None, description="catalog ID")
     custom_name: Optional[str] = Field(
         None,
         min_length=1,
@@ -161,11 +164,10 @@ class UserApplianceUpdate(BaseModel):
         max_length=100,
         description="Appliance model number",
     )
-    star_rating: Optional[str] = Field(
-        None,
+    star_rating: Optional[int] = Field(
+        ...,
         ge=1,
         le=5,
-        pattern="^[1-5](\\.5)?$",
         description="Star rating of your appliance from 1 to 5",
     )
     purchase_year: Optional[int] = Field(
@@ -212,7 +214,7 @@ class UserApplianceUpdate(BaseModel):
     @model_validator(mode="before")
     def at_least_one_field(cls, values):
         if not any(values.values()):
-            raise ValueError("At least one field must be provided for an update.")
+            raise ValidationError("At least one field must be provided for an update.")
         return values
 
     @model_validator(mode="after")
@@ -240,6 +242,8 @@ class UserApplianceResponse(UserApplianceBase):
 
     id: uuid.UUID = Field(..., description="Appliance ID")
     user_id: uuid.UUID = Field(..., description="User ID")
+    bill_id: uuid.UUID = Field(..., description="Bill ID")
+    appliance_catalog_id: str = Field(..., description="Catalog ID")
     created_at: datetime = Field(..., description="Registration timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
@@ -275,6 +279,7 @@ class UserApplianceSearchParams(BaseModel):
         description="Search in custom_name, brand",
     )
     user_id: Optional[uuid.UUID] = Field(None, description="Filter by user_id")
+    bill_id: Optional[uuid.UUID] = Field(None, description="Filter by bill_id")
     appliance_catalog_id: Optional[uuid.UUID] = Field(
         None, description="Filter by appliance_catalog_id"
     )
@@ -293,6 +298,100 @@ class UserApplianceSearchParams(BaseModel):
             if self.created_after > self.created_before:
                 raise ValidationError("created_after must be before created_before")
         return self
+
+
+# ===========Catalog Schemas============
+class ApplianceCatalogCreate(BaseModel):
+    """Create catalog schema"""
+
+    category_id: str = Field(..., description="catalog_id")
+    label: str = Field(..., min_length=1, max_length=500, description="Label name")
+    icon_emoji: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Emoji or short icon text to represent a label",
+    )
+    typical_wattage: int = Field(
+        ...,
+        gt=0,
+        le=50000,
+        description="Average wattage of the appliance in watts",
+    )
+
+    # Field validators
+    @field_validator("icon_emoji")
+    def strip_and_validate_strings(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValidationError("This field cannot be empty or only spaces")
+        return v
+
+    @field_validator("icon_emoji")
+    def validate_emoji(cls, v: str) -> str:
+        # very loose check: one emoji or short text allowed
+        if len(v) > 2 and not re.match(r"^[\w\s-]+$", v):
+            raise ValidationError("icon_emoji must be a single emoji or short text")
+        return v
+
+
+class ApplianceCatalogUpdate(BaseModel):
+    """Update catalog schema"""
+
+    catalog_id: str = Field(..., description="catalog_id")
+    label: Optional[str] = Field(
+        None, min_length=1, max_length=500, description="Label name"
+    )
+    icon_emoji: Optional[str] = Field(
+        None,
+        min_length=1,
+        max_length=50,
+        description="Emoji or short icon text to represent a label",
+    )
+    typical_wattage: Optional[int] = Field(
+        None,
+        gt=0,
+        le=50000,
+        description="Average wattage of the appliance in watts",
+    )
+
+    # Field validators
+    @field_validator("label", "icon_emoji")
+    def strip_and_validate_strings(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValidationError("This field cannot be empty or only spaces")
+        return v
+
+    @field_validator("icon_emoji")
+    def validate_emoji(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if len(v) > 2 and not re.match(r"^[\w\s-]+$", v):
+            raise ValidationError("icon_emoji must be a single emoji or short text")
+        return v
+
+    # Model validator
+    @model_validator(mode="before")
+    def at_least_one_field(cls, values):
+        if not any(values.values()):
+            raise ValidationError("At least one field must be provided for an update")
+        return values
+
+
+class ApplianceCatalogResponse(BaseModel):
+    """Response schema for catalog"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    category_id: str = Field(..., description="Catalog ID")
+    label: str = Field(..., min_length=1, max_length=500, description="Label name")
+    icon_emoji: str = Field(
+        ..., min_length=1, max_length=50, description="emoji to represent a label"
+    )
+    typical_wattage: int = Field(..., description="an average wattage")
 
 
 # ===========ESTIMATE SCHEMAS=============

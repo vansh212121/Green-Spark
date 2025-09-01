@@ -36,7 +36,7 @@ class UserApplianceBase(SQLModel):
     days_per_week: int
     brand: Optional[str] = Field(default=None)
     model: Optional[str] = Field(default=None)
-    star_rating: Optional[str] = Field(default=None)
+    star_rating: Optional[int] = Field(default=None)
     purchase_year: Optional[int] = Field(default=None)
     notes: Optional[str] = Field(default=None)
 

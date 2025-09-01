@@ -10,14 +10,10 @@ from src.app.db.session import db
 from src.app.crud.appliance_crud import appliance_repository
 from src.app.crud.bill_crud import bill_repository
 from src.app.models.bill_model import Bill
-from src.app.models.appliance_model import (
-    UserAppliance,
-    ApplianceEstimate,
-    ApplianceCatalog,
-)
-
-# We might need the generate_insights_task to trigger it next
-# from src.app.tasks.insight_tasks import generate_insights_task
+from src.app.models.appliance_model import ApplianceEstimate
+from src.app.core.config import settings
+from src.app.db.session import Database
+# from src.app.tasks.insight_tasks import generate_insights_task # For the next phase
 
 logger = logging.getLogger(__name__)
 
@@ -25,53 +21,45 @@ logger = logging.getLogger(__name__)
 async def _perform_estimation_for_bill(session, bill: Bill):
     """
     The core estimation logic. Takes a Bill object and calculates the
-    appliance estimates for it.
+    appliance estimates for it based on the inventory ATTACHED to that specific bill.
     """
-    user_id = bill.user_id
     actual_total_kwh = bill.kwh_total
 
-    # 1. Get user's full appliance inventory
-    appliances, _ = await appliance_repository.get_by_user(
+    # --- THIS IS THE KEY CHANGE for our "bill-centric" model ---
+    # 1. Get the appliance inventory FOR THIS SPECIFIC BILL.
+    appliances_for_this_bill, _ = await appliance_repository.get_by_bills(
         db=session,
-        user_id=user_id,
-        limit=500,
+        bill_id=bill.id,
         skip=0,
+        limit=100,
         order_by="created_at",
         order_desc=True,
     )
 
-    if not appliances:
+    if not appliances_for_this_bill:
         logger.info(
-            f"User {user_id} has no appliances. Skipping estimation for bill {bill.id}."
+            f"Bill {bill.id} has no appliances in its inventory. Skipping estimation."
         )
         return
 
-    # 2. Calculate total theoretical kWh
+    # 2. Calculate total theoretical kWh from this bill's inventory
     theoretical_consumptions = []
-    total_theoretical_kwh = 0
+    total_theoretical_kwh = 0.0
+    billing_days = (bill.billing_period_end - bill.billing_period_start).days or 30
 
-    for appliance in appliances:
-        # Prioritize custom wattage, but fall back to catalog's typical wattage
+    for appliance in appliances_for_this_bill:
+        # For a bill-specific appliance, the wattage is required.
         wattage = appliance.custom_wattage
-        if not wattage and appliance.appliance_catalog_id:
-            catalog_item = await session.get(
-                ApplianceCatalog, appliance.appliance_catalog_id
-            )
-            if catalog_item:
-                wattage = catalog_item.typical_wattage
-
         if not wattage:
             continue
 
-        # Simple estimation formula
-        billing_days = (bill.billing_period_end - bill.billing_period_start).days
         theoretical_kwh = (
             wattage
             * appliance.hours_per_day
             * appliance.days_per_week
             / 7
             * billing_days
-        ) / 1000
+        ) / 1000.0
         theoretical_consumptions.append(
             {"appliance": appliance, "kwh": theoretical_kwh}
         )
@@ -79,71 +67,90 @@ async def _perform_estimation_for_bill(session, bill: Bill):
 
     if total_theoretical_kwh == 0:
         logger.warning(
-            f"Total theoretical consumption is 0 for user {user_id}. Cannot scale estimates for bill {bill.id}."
+            f"Total theoretical consumption is 0 for bill {bill.id}. Cannot scale estimates."
         )
+        # We should still clear old estimates in this case.
+        delete_statement = ApplianceEstimate.__table__.delete().where(
+            ApplianceEstimate.bill_id == bill.id
+        )
+        await session.execute(delete_statement)
+        await session.commit()
         return
 
-    # 3. Calculate scaling factor
+    # 3. Calculate the proportional scaling factor
     scaling_factor = actual_total_kwh / total_theoretical_kwh
 
-    # 4. Delete old estimates for this bill to ensure a clean slate
-    #    In a production system, you might use a more advanced update/insert (upsert)
-    for old_estimate in bill.estimates:
-        await session.delete(old_estimate)
-    await session.commit()
+    # 4. Delete any old estimates for this bill to ensure a clean slate
+    delete_statement = ApplianceEstimate.__table__.delete().where(
+        ApplianceEstimate.bill_id == bill.id
+    )
+    await session.execute(delete_statement)
 
     # 5. Create and save new ApplianceEstimate objects
+    new_estimates = []
+    avg_cost_per_kwh = bill.cost_total / bill.kwh_total if bill.kwh_total > 0 else 0
+
     for item in theoretical_consumptions:
         appliance = item["appliance"]
         scaled_kwh = item["kwh"] * scaling_factor
-
-        # A simple cost estimate can be derived from the bill's average cost per kWh
-        avg_cost_per_kwh = bill.cost_total / bill.kwh_total if bill.kwh_total > 0 else 0
         estimated_cost = scaled_kwh * avg_cost_per_kwh
 
-        estimate_obj = ApplianceEstimate(
-            bill_id=bill.id,
-            user_appliance_id=appliance.id,
-            estimated_kwh=scaled_kwh,
-            estimated_cost=estimated_cost,
+        new_estimates.append(
+            ApplianceEstimate(
+                bill_id=bill.id,
+                user_appliance_id=appliance.id,
+                estimated_kwh=scaled_kwh,
+                estimated_cost=estimated_cost,
+            )
         )
-        session.add(estimate_obj)
 
+    session.add_all(new_estimates)
     await session.commit()
     logger.info(
-        f"Successfully calculated and saved {len(theoretical_consumptions)} appliance estimates for bill {bill.id}"
+        f"Successfully calculated and saved {len(new_estimates)} appliance estimates for bill {bill.id}"
     )
 
-    # 6. Trigger the next step in the pipeline
+    # 6. Trigger the next step in the pipeline (when we build it)
     # generate_insights_task.delay(str(bill.id))
 
 
-@celery_app.task(name="tasks.estimate_appliances")
-def estimate_appliances_for_single_bill_task(bill_id: str):
-    """Celery task to run estimation for one newly parsed bill."""
+# @celery_app.task(name="tasks.estimate_appliances_for_bill")
+# def estimate_appliances_for_bill_task(bill_id: str):
+#     """Celery task to run estimation for a single bill."""
+#     logger.info(f"Worker received task: Estimate appliances for bill_id: {bill_id}")
+
+#     async def main():
+#         async with db.session_context() as session:
+#             bill = await bill_repository.get(db=session, bill_id=uuid.UUID(bill_id))
+#             if bill:
+#                 await _perform_estimation_for_bill(session, bill)
+
+#     asyncio.run(main())
+
+@celery_app.task(name="tasks.estimate_appliances_for_bill")
+def estimate_appliances_for_bill_task(bill_id: str):
+    """
+    Celery task to run estimation for a single bill.
+    This task is self-contained: it creates its own DB connection and async loop.
+    """
     logger.info(f"Worker received task: Estimate appliances for bill_id: {bill_id}")
 
+    # This is our self-contained async entry point
     async def main():
-        async with db.session_context() as session:
-            bill = await bill_repository.get(db=session, bill_id=uuid.UUID(bill_id))
-            if bill:
-                await _perform_estimation_for_bill(session, bill)
+        # 1. Create a NEW, LOCAL Database instance for this task run.
+        local_db = Database(str(settings.DATABASE_URL))
+        
+        # 2. Connect and get a session from this new local instance.
+        await local_db.connect()
+        async with local_db.session_context() as session:
+            try:
+                bill = await bill_repository.get(db=session, bill_id=uuid.UUID(bill_id))
+                if bill:
+                    # 3. Pass the session to our core logic function.
+                    await _perform_estimation_for_bill(session, bill)
+            finally:
+                # 4. CRITICAL: Always disconnect from the database when done.
+                await local_db.disconnect()
 
-    asyncio.run(main())
-
-
-@celery_app.task(name="tasks.re_estimate_for_user")
-def re_estimate_all_bills_for_user_task(user_id: str):
-    """Celery task to re-run estimation for ALL of a user's bills."""
-    logger.info(f"Worker received task: Re-estimate all bills for user_id: {user_id}")
-
-    async def main():
-        async with db.session_context() as session:
-            # We don't need pagination here, we want all bills for the user
-            bills, _ = await bill_repository.get_by_user(
-                db=session, user_id=uuid.UUID(user_id), limit=1000
-            )
-            for bill in bills:
-                await _perform_estimation_for_bill(session, bill)
-
+    # 5. Run the self-contained async main function.
     asyncio.run(main())

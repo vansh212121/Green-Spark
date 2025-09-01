@@ -1,6 +1,6 @@
 import logging
 import uuid
-
+from typing import Dict
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -151,3 +151,23 @@ async def confirm_bill_upload(
     return await bill_service.confirm_upload_and_start_parsing(
         db=db, user=current_user, confirm_data=confirm_data
     )
+
+
+@router.post(
+    "/bills/{bill_id}/estimate",
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=Dict[str, str],
+    summary="Trigger the bill estimation task",
+    dependencies=[Depends(rate_limit_api), Depends(require_user)],
+)
+async def trigger_bill_estimation(
+    *,
+    db: AsyncSession = Depends(get_session),
+    bill_id: uuid.UUID,
+    current_user: User = Depends(get_current_verified_user),
+):
+    """Manually trigger the appliance estimation task for a bill."""
+    await bill_service.trigger_estimation_for_bill(
+        db=db, bill_id=bill_id, current_user=current_user
+    )
+    return {"message": "Appliance estimation has been queued."}

@@ -44,6 +44,10 @@ COPY --chown=appuser:appuser ./src/app /app/app
 
 # --- ADDED FOR SECURITY ---
 # Switch to the non-root user
+USER root
+RUN apt-get update && \
+    apt-get install -y tesseract-ocr && \
+    rm -rf /var/lib/apt/lists/*
 USER appuser
 # -------------------------
 

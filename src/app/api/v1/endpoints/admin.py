@@ -14,6 +14,13 @@ from src.app.utils.deps import (
     require_admin,
     PaginationParams,
 )
+from src.app.schemas.appliance_schema import (
+    UserApplianceListResponse,
+    ApplianceCatalogResponse,
+    ApplianceCatalogCreate,
+)
+from src.app.services.appliance_service import appliance_service
+from src.app.models.appliance_model import ApplianceCatalog
 from src.app.schemas.user_schema import (
     UserResponse,
     UserListResponse,
@@ -214,3 +221,85 @@ async def get_all_users(
         order_by=order_by,
         order_desc=order_desc,
     )
+
+
+# ============Appliances and Catalogs===========
+@router.get(
+    "/{user_id}/appliances",
+    response_model=UserApplianceListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List all appliances",
+    description="Get a paginated and filterable list of all appliances by a bill_id.(admin only)",
+    dependencies=[
+        Depends(require_admin),
+        Depends(rate_limit_api),
+    ],
+)
+async def get_all_appliances_by_user(
+    *,
+    user_id: uuid.UUID,
+    current_user: User = Depends(get_current_verified_user),
+    db: AsyncSession = Depends(get_session),
+    pagination: PaginationParams = Depends(get_pagination_params),
+    order_by: str = Query("created_at", description="Field to order by"),
+    order_desc: bool = Query(True, description="Order descending"),
+):
+    """Get all Appliances with pagination and filtering support"""
+    return await appliance_service.get_user_appliances(
+        user_id=user_id,
+        db=db,
+        order_by=order_by,
+        order_desc=order_desc,
+        skip=pagination.skip,
+        limit=pagination.limit,
+    )
+
+
+@router.post(
+    "/catalog",
+    response_model=ApplianceCatalogResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="create a catalog",
+    description="Create a catalog (Admins only).",
+    dependencies=[
+        Depends(require_admin),
+        Depends(rate_limit_api),
+    ],
+)
+async def create_catalog(
+    *,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_verified_user),
+    catalog: ApplianceCatalogCreate,
+):
+    """create a catalog"""
+
+    return await appliance_service.create_catalog(
+        db=db, current_user=current_user, catalog_in=catalog
+    )
+
+
+@router.delete(
+    "/{catalog_id}",
+    response_model=Dict[str, str],
+    status_code=status.HTTP_200_OK,
+    summary="delete a catalog",
+    description="delete a catalog by it's ID(Admins only).",
+    dependencies=[
+        Depends(require_admin),
+        Depends(rate_limit_api),
+    ],
+)
+async def delete_catalog(
+    *,
+    catalog_id: str,
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_verified_user),
+):
+    """Delete a catalog by it's ID"""
+
+    await appliance_service.delete_catalog(
+        db=db, current_user=current_user, catalog_id=catalog_id
+    )
+
+    return {"message": "Catalog deleted successfully"}

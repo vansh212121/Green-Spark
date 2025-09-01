@@ -48,61 +48,6 @@ def _mock_pdf_parser(file_uri: str) -> dict:
     }
 
 
-# @celery_app.task(name="tasks.parse_digital_pdf")
-# def parse_digital_pdf_task(bill_id: str):  # Celery tasks should be synchronous
-#     """Celery task to parse a PDF bill, update the database, and trigger next steps."""
-#     logger.info(f"Worker received task: Parse PDF for bill_id: {bill_id}")
-
-#     # Use a real async event loop runner for the async code
-#     import asyncio
-
-#     async def main():
-#         async with db.session_context() as session:
-#             try:
-#                 # Use the service layer's update method instead of raw repository
-#                 # This keeps logic centralized. We just need to create it.
-#                 # Let's simplify and call the repository directly for now.
-
-#                 bill_uuid = uuid.UUID(bill_id)  # Convert str back to UUID
-#                 bill = await bill_repository.get(db=session, bill_id=bill_uuid)
-#                 if not bill:
-#                     logger.error(f"Bill with ID {bill_id} not found in database.")
-#                     return
-
-#                 raw_parsed_data = _mock_pdf_parser(bill.file_uri)
-#                 normalized_data = NormalizedBillSchema.model_validate(raw_parsed_data)
-
-#                 update_data = {
-#                     "parse_status": BillStatus.SUCCESS,
-#                     "provider": normalized_data.discom,
-#                     "billing_period_start": normalized_data.period.start,
-#                     "billing_period_end": normalized_data.period.end,
-#                     "kwh_total": normalized_data.consumption.total_kwh,
-#                     "cost_total": normalized_data.totals.get("cost"),
-#                     "normalized_json": normalized_data.model_dump(mode="json"),
-#                     "parser_version": "mock-v1.0",
-#                     "checksum": f"sha256:{random.getrandbits(256):064x}",
-#                 }
-#                 await bill_repository.update(
-#                     db=session, bill=bill, fields_to_update=update_data
-#                 )
-#                 logger.info(f"Successfully parsed and updated bill: {bill_id}")
-
-#                 await cache_service.invalidate(BillResponse, bill_uuid)
-
-#             except Exception as e:
-#                 logger.error(f"Failed to parse bill {bill_id}: {e}", exc_info=True)
-#                 bill = await bill_repository.get(db=session, bill_id=uuid.UUID(bill_id))
-#                 if bill:
-#                     await bill_repository.update(
-#                         db=session,
-#                         bill=bill,
-#                         fields_to_update={"parse_status": BillStatus.FAILED},
-#                     )
-#                     await cache_service.invalidate(BillResponse, uuid.UUID(bill_id))
-
-
-#     asyncio.run(main())
 @celery_app.task(name="tasks.parse_digital_pdf")
 def parse_digital_pdf_task(bill_id: str):
     """Celery task to parse a PDF bill, update the database, and trigger next steps."""

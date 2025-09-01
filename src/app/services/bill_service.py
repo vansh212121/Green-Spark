@@ -34,6 +34,7 @@ from src.app.core.exceptions import (
     ValidationError,
 )
 from src.app.tasks.parsing_tasks import parse_digital_pdf_task
+from src.app.tasks.estimation_tasks import estimate_appliances_for_bill_task
 
 logger = logging.getLogger(__name__)
 
@@ -301,6 +302,29 @@ class BillService:
                 "deleted_bill_id": bill_id_to_delete,
                 "deleter_id": current_user.id,
             },
+        )
+
+    async def trigger_estimation_for_bill(
+        self, db: AsyncSession, *, bill_id: uuid.UUID, current_user: User
+    ) -> None:
+        """Triggers the appliance estimation task for a specific bill after an auth check."""
+        bill = await self.bill_repository.get(db=db, bill_id=bill_id)
+        raise_for_status(
+            condition=(bill is None),
+            exception=ResourceNotFound,
+            detail=f"Bill with id {bill_id} is not found.",
+            resource_type="Bill",
+        )
+
+        # Authorization check
+        if bill.user_id != current_user.id and not current_user.role >= UserRole.ADMIN:
+            raise NotAuthorized(
+                "You are not authorized to trigger estimation for this bill."
+            )
+
+        estimate_appliances_for_bill_task.delay(str(bill_id))
+        logger.info(
+            f"User {current_user.id} manually triggered estimation for bill {bill_id}"
         )
 
 

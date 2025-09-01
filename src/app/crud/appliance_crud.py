@@ -12,6 +12,7 @@ from src.app.core.exceptions import InternalServerError
 
 from src.app.models.appliance_model import (
     ApplianceCatalog,
+    ApplianceEstimate,
     UserAppliance,
 )
 
@@ -82,6 +83,37 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
     ) -> Tuple[List[UserAppliance], int]:
         """Get paginated list of user_appliancess by user_id"""
         query = select(self.model).where(self.model.user_id == user_id)
+
+        # Count total
+        count_query = select(func.count()).select_from(query.subquery())
+        total = (await db.execute(count_query)).scalar_one()
+
+        # Apply ordering
+        query = self._apply_ordering(query, order_by, order_desc)
+
+        # Apply pagination
+        paginated_query = query.offset(skip).limit(limit)
+        result = await db.execute(paginated_query)
+        appliances = result.scalars().all()
+
+        return appliances, total
+
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
+    async def get_by_bills(
+        self,
+        db: AsyncSession,
+        *,
+        bill_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 100,
+        order_by: str = "created_at",
+        order_desc: bool = True,
+    ) -> Tuple[List[UserAppliance], int]:
+        """Get paginated list of user_appliancess by user_id"""
+        query = select(self.model).where(self.model.bill_id == bill_id)
 
         # Count total
         count_query = select(func.count()).select_from(query.subquery())
@@ -187,7 +219,7 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
         self._logger.info(f"UserAppliance hard deleted: {obj_id}")
         return
 
-    # ==================== HELPER METHODS ====================
+    # ==================== Catalog METHODS ====================
     @handle_exceptions(
         default_exception=InternalServerError,
         message="An unexpected database error occurred.",
@@ -214,6 +246,60 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
         default_exception=InternalServerError,
         message="An unexpected database error occurred.",
     )
+    async def get_catalog_items(self, db: AsyncSession) -> List[ApplianceCatalog]:
+        """Get all appliance catalog items."""
+        statement = select(ApplianceCatalog).order_by(ApplianceCatalog.label)
+        result = await db.execute(statement)
+        return result.scalars().all()
+
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
+    async def create_catalog(
+        self, db: AsyncSession, *, catalog_in: ApplianceCatalog
+    ) -> ApplianceCatalog:
+        """Create an catalog"""
+        db.add(catalog_in)
+        await db.commit()
+        await db.refresh(catalog_in)
+        self._logger.info(f"Catalog created: {catalog_in.category_id}")
+        return catalog_in
+
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
+    async def delete_catalog(self, db: AsyncSession, *, obj_id: str) -> None:
+        """Delete a catalog by it's ID"""
+        statement = delete(ApplianceCatalog).where(
+            ApplianceCatalog.category_id == obj_id
+        )
+        await db.execute(statement)
+        await db.commit()
+        self._logger.info(f"Appliance Catalog hard deleted: {obj_id}")
+        return
+
+    # ===========estimates============
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
+    async def get_all_estimates(
+        self, db: AsyncSession, *, bill_id: uuid.UUID
+    ) -> List[ApplianceEstimate]:
+        """Get all estimates for a bill"""
+        statement = select(ApplianceEstimate).where(
+            ApplianceEstimate.bill_id == bill_id
+        )
+        result = await db.execute(statement)
+        return result.scalars().all()
+
+    # ==================== HELPER METHODS ====================
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
     async def get_by_name_for_user(
         self, db: AsyncSession, *, name: str, user_id: uuid.UUID
     ) -> Optional[UserAppliance]:
@@ -236,15 +322,13 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
         result = await db.execute(statement)
         return result.scalar_one_or_none()
 
-    @handle_exceptions(
-        default_exception=InternalServerError,
-        message="An unexpected database error occurred.",
-    )
-    async def get_catalog_items(self, db: AsyncSession) -> List[ApplianceCatalog]:
-        """Get all appliance catalog items."""
-        statement = select(ApplianceCatalog).order_by(ApplianceCatalog.label)
-        result = await db.execute(statement)
-        return result.scalars().all()
+    def _apply_ordering(self, query, order_by: str, order_desc: bool):
+        """Apply ordering to query."""
+        order_column = getattr(self.model, order_by, self.model.created_at)
+        if order_desc:
+            return query.order_by(order_column.desc())
+        else:
+            return query.order_by(order_column.asc())
 
 
 appliance_repository = UserApplianceRepository()

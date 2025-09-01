@@ -10,6 +10,7 @@ services:
     volumes:
       # This correctly mounts your entire src directory
       - ./src:/app/src
+      - ./scripts:/app/scripts
     # --- COMMAND CORRECTED to be aware of the 'src' layout ---
     command: >
       uvicorn src.app.main:app
