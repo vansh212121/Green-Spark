@@ -186,7 +186,7 @@ class BillService:
         )
 
         return response
-
+    
     def create_upload_url(
         self, *, user: User, filename: str, content_type: str
     ) -> BillUploadResponse:

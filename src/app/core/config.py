@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_SERVER: str = "postgres"
     POSTGRES_PORT: int = 5432
-
+    
+    API_KEY: str
+    
     REDIS_URL: str
 
     FRONTEND_URL: str = "http://localhost:3000"
@@ -72,6 +74,7 @@ class Settings(BaseSettings):
     S3_ACCESS_KEY_ID: str
     S3_SECRET_ACCESS_KEY: str
     S3_BUCKET_NAME: str = "greenspark-bills"
+
 
     # --- Model Configuration ---
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

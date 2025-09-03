@@ -27,8 +27,7 @@ class InsightBase(SQLModel):
         default=InsightStatus.PENDING,
     )
     # This field stores the entire, rich JSON payload for the Smart Insights page.
-    structured_data: Dict[str, Any] = Field(sa_column=Column(JSONB), default={})
-
+    structured_data: Dict[str, Any] = Field(sa_column=Column(JSONB), default=None)
 
 class Insight(InsightBase, table=True):
     __tablename__ = "insights"

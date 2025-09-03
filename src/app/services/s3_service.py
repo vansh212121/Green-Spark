@@ -2,6 +2,7 @@
 
 import logging
 import boto3
+import tempfile
 from botocore.exceptions import ClientError
 from src.app.core.config import settings
 from src.app.core.exceptions import ServiceUnavailable
@@ -69,6 +70,21 @@ class S3Service:
                     service="File Storage", detail="Could not connect to file storage."
                 ) from e
 
+    def download_file(self, object_key: str) -> str:
+        """Downloads a file from S3/MinIO to a temporary local path."""
+        # Create a temporary file
+        temp_file = tempfile.NamedTemporaryFile(delete=False)
+        
+        try:
+            # Recreate the key from the full URI
+            key = object_key.replace(f"s3://{self.bucket_name}/", "")
+            
+            self.s3_client.download_file(self.bucket_name, key, temp_file.name)
+            logger.info(f"Successfully downloaded {object_key} to {temp_file.name}")
+            return temp_file.name
+        except ClientError as e:
+            logger.error(f"Failed to download file {object_key}: {e}", exc_info=True)
+            raise ServiceUnavailable(service="File Storage", detail="Could not download file for processing.")
 
 # Singleton instance for dependency injection
 s3_service = S3Service()
