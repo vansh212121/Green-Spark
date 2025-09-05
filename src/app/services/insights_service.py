@@ -1,106 +1,17 @@
-# # app/services/insight_service.py
-
-# import logging
-# import uuid
-# from typing import Optional
-
-# from sqlmodel.ext.asyncio.session import AsyncSession
-
-# from src.app.core.exceptions import NotAuthorized, ResourceNotFound, AppError
-# from src.app.crud.insight_crud import insight_repository, InsightRepository
-# from src.app.crud.bill_crud import bill_repository, BillRepository
-# from src.app.models.user_model import User, UserRole
-# from src.app.models.insight_model import Insight, InsightStatus
-# from src.app.schemas.insight_schema import InsightRead, InsightCreate, InsightStatusResponse
-# # from src.app.tasks.insight_tasks import generate_insights_task # We'll import this when the task is built
-
-# logger = logging.getLogger(__name__)
-
-# class InsightService:
-#     def __init__(self,
-#                  insight_repo: InsightRepository = insight_repository,
-#                  bill_repo: BillRepository = bill_repository):
-#         self.insight_repository = insight_repo
-#         self.bill_repository = bill_repo
-
-#     async def get_or_trigger_insight_generation(
-#         self, db: AsyncSession, *, bill_id: uuid.UUID, user: User
-#     ) -> InsightStatusResponse:
-#         """
-#         Checks for an existing insight for a bill. If it exists, returns its status.
-#         If not, it creates a 'pending' insight record and triggers the generation task.
-#         """
-#         # 1. Authorize: Ensure the user owns the bill they're requesting insights for.
-#         bill = await self.bill_repository.get(db=db, bill_id=bill_id)
-#         if not bill:
-#             raise ResourceNotFound(resource_type="Bill", resource_id=str(bill_id))
-#         if bill.user_id != user.id and not user.role >= UserRole.ADMIN:
-#             raise NotAuthorized("You are not authorized to access insights for this bill.")
-
-#         # 2. Check if an insight record already exists.
-#         insight = await self.insight_repository.get_by_bill_id(db=db, bill_id=bill_id)
-
-#         if insight:
-#             return InsightStatusResponse(bill_id=bill_id, status=insight.status)
-
-#         # 3. If no insight exists, create a new one and trigger the task.
-#         insight_create_schema = InsightCreate(bill_id=bill_id, user_id=user.id)
-#         await self.insight_repository.create(db=db, obj_in=insight_create_schema)
-
-#         # Trigger the Celery task to run in the background
-#         # generate_insights_task.delay(str(bill_id))
-
-#         logger.info(f"Insight generation queued for bill {bill_id} by user {user.id}")
-#         return InsightStatusResponse(bill_id=bill_id, status=InsightStatus.PENDING)
-
-#     async def get_insight_report(
-#         self, db: AsyncSession, *, bill_id: uuid.UUID, user: User
-#     ) -> InsightRead:
-#         """
-#         Securely retrieves the completed insight report for a bill.
-#         """
-#         insight = await self.insight_repository.get_by_bill_id(db=db, bill_id=bill_id)
-
-#         if not insight:
-#             # We can use a custom exception here for the frontend to handle
-#             raise ResourceNotFound(resource_type="Insight", resource_id=f"for bill {bill_id}")
-
-#         # Authorization check (redundant if called after get_or_trigger, but good for safety)
-#         if insight.user_id != user.id and not user.role >= UserRole.ADMIN:
-#             raise NotAuthorized("You are not authorized to view this insight report.")
-
-#         if insight.status != InsightStatus.COMPLETED:
-#             raise AppError(
-#                 status_code=202, # 202 Accepted
-#                 message=f"Insight generation is still {insight.status.value}. Please check back later.",
-#                 error_code="INSIGHT_NOT_READY"
-#             )
-
-#         # Validate the stored JSON against our Pydantic schema and return it
-#         return InsightRead.model_validate(insight.structured_data)
-
-# # Singleton instance
-# insight_service = InsightService()
-
-
 import uuid
 import logging
-from typing import Optional, Dict, Any
-from datetime import date
-
+from typing import Optional
+from datetime import datetime, timezone
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.app.crud.insights_crud import insights_repository
 from src.app.crud.bill_crud import bill_repository
 from src.app.schemas.insights_schema import (
-    InsightResponee,
-    InsightRecommendation,
-    InsightKPIs,
+    InsightResponse,
     InsightCreate,
-    InsightTrend,
     InsightStatusResponse,
 )
+from src.app.tasks.insights_task import generate_insights_task
 from src.app.models.insights_model import Insight, InsightStatus
-from src.app.models.bill_model import Bill
 from src.app.models.user_model import User, UserRole
 
 from src.app.services.cache_service import cache_service
@@ -109,7 +20,6 @@ from src.app.core.exceptions import (
     ResourceNotFound,
     NotAuthorized,
     ServiceUnavailable,
-    ValidationError,
 )
 
 
@@ -159,7 +69,7 @@ class InsightService:
 
     async def _load_insight_schema_from_db(
         self, *, db: AsyncSession, bill_id: uuid.UUID
-    ) -> Optional[InsightResponee]:
+    ) -> Optional[InsightResponse]:
         """Private helper to load a user from the DB and convert it to a Pydantic schema.
         This is our "loader" function for the cache."""
 
@@ -170,7 +80,7 @@ class InsightService:
             detail=f"insight with {bill_id} not Found.",
             resource_type="Insight",
         )
-        return InsightResponee.model_validate(insight_model)
+        return InsightResponse.model_validate(insight_model)
 
     async def get_by_bill_id(
         self, db: AsyncSession, *, bill_id: uuid.UUID, current_user: User
@@ -243,7 +153,7 @@ class InsightService:
 
     async def get_insight_report(
         self, db: AsyncSession, *, bill_id: uuid.UUID, current_user: User
-    ) -> InsightResponee:
+    ) -> InsightResponse:
         """
         Securely retrieves the completed insight report for a bill.
         """
@@ -268,7 +178,60 @@ class InsightService:
             )
 
         # Validate the stored JSON against our Pydantic schema and return it
-        return InsightResponee.model_validate(insight.structured_data)
+        return InsightResponse.model_validate(insight.structured_data)
+
+    async def trigger_insight_regeneration(
+        self, db: AsyncSession, *, bill_id: uuid.UUID, user: User
+    ) -> InsightStatusResponse:
+        """
+        Manually triggers a new insight generation task for a bill, after authorization.
+        Sets the existing insight status back to 'pending'
+        """
+        # 1. Authorize: Ensure the user owns the bill.
+        bill = await self.bill_repository.get(db=db, bill_id=bill_id)
+        raise_for_status(
+            condition=(bill is None),
+            exception=ResourceNotFound,
+            detail=f"Bill with id {bill_id} not found",
+            resource_type="Bill",
+        )
+        if bill.user_id != user.id and not user.role >= UserRole.ADMIN:
+            raise NotAuthorized(
+                "You are not authorized to regenerate insights for this bill."
+            )
+
+        # 2. Get the existing insight record.
+        insight = await self.insights_repository.get(db=db, bill_id=bill_id)
+        if not insight:
+            # 1. Create the Pydantic instance
+            insight_create = InsightCreate(bill_id=bill_id, user_id=user.id)
+
+            # 2. Convert it to dict for the ORM model
+            insight_dict = insight_create.model_dump()
+            insight_dict["status"] = InsightStatus.PENDING
+            insight_dict["generated_at"] = datetime.now(timezone.utc)
+
+            # 3. Instantiate ORM model
+            insight_to_create = Insight(**insight_dict)
+
+            # 4. Call CRUD create
+            insight = await self.insights_repository.create(
+                db=db, obj_in=insight_to_create
+            )
+        else:
+            # If it does exist, set its status back to pending.
+            insight.status = InsightStatus.PENDING
+            db.add(insight)
+            await db.commit()
+            await db.refresh(insight)
+
+        # 3. Trigger the Celery task to run in the background.
+        generate_insights_task.delay(str(bill_id), str(user.id))
+
+        logger.info(
+            f"Insight RE-generation queued for bill {bill_id} by user {user.id}"
+        )
+        return InsightStatusResponse(bill_id=bill_id, status=insight.status)
 
 
 # Singleton instance

@@ -248,11 +248,42 @@ class UserApplianceResponse(UserApplianceBase):
     updated_at: datetime = Field(..., description="Last update timestamp")
 
 
+# ===========ESTIMATE SCHEMAS=============
+class ApplianceEstimateBase(BaseModel):
+    """Base schema for appliance estimates"""
+
+    estimated_kwh: float = Field(..., ge=0)
+    estimated_cost: float = Field(..., ge=0)
+
+
+class ApplianceEstimateResponse(ApplianceEstimateBase):
+    """Schema for creating appliance estimates"""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID = Field(..., description="Appliance estimate ID")
+    bill_id: uuid.UUID = Field(..., description="Bill ID")
+    user_appliance_id: uuid.UUID = Field(..., description="user_appliance ID")
+
+
+class UserApplianceDetailedResponse(UserApplianceResponse):
+    """Detailed response for an appliance"""
+
+    # One appliance can have multiple estimates
+    estimates: List[ApplianceEstimateResponse] = Field(
+        default_factory=list,
+        description="List of usage estimates for this appliance"
+    )
+
+
+
 # ======== List and Search Schemas =========
 class UserApplianceListResponse(BaseModel):
     """Response for paginated user list."""
 
-    items: List[UserApplianceResponse] = Field(..., description="List of appliances")
+    items: List[UserApplianceDetailedResponse] = Field(
+        ..., description="List of appliances"
+    )
     total: int = Field(..., ge=0, description="Total number of appliances")
     page: int = Field(..., ge=1, description="Current page number")
     pages: int = Field(..., ge=0, description="Total number of pages")
@@ -392,30 +423,6 @@ class ApplianceCatalogResponse(BaseModel):
         ..., min_length=1, max_length=50, description="emoji to represent a label"
     )
     typical_wattage: int = Field(..., description="an average wattage")
-
-
-# ===========ESTIMATE SCHEMAS=============
-class ApplianceEstimateBase(BaseModel):
-    """Base schema for appliance estimates"""
-
-    estimated_kwh: float = Field(..., ge=0)
-    estimated_cost: float = Field(..., ge=0)
-
-
-class ApplianceEstimateResponse(ApplianceEstimateBase):
-    """Schema for creating appliance estimates"""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID = Field(..., description="Appliance estimate ID")
-    bill_id: uuid.UUID = Field(..., description="Bill ID")
-    user_appliance_id: uuid.UUID = Field(..., description="user_appliance ID")
-
-
-class UserApplianceDetailedResponse(UserApplianceResponse):
-    """Detailed response for an appliance"""
-
-    pass
 
 
 __all__ = [

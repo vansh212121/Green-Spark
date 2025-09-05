@@ -1,7 +1,7 @@
 import logging
 
 from typing import Dict
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -10,14 +10,18 @@ from src.app.schemas.user_schema import UserResponse, UserUpdate
 from src.app.schemas.auth_schema import UserPasswordChange
 from src.app.models.user_model import User
 from src.app.db.session import get_session
+from src.app.schemas.bill_schema import BillUserListResponse, BillSearchParams
 from src.app.utils.deps import (
     get_current_verified_user,
     rate_limit_api,
     require_user,
+    PaginationParams,
+    get_pagination_params,
     rate_limit_auth,
 )
 from src.app.services.user_service import user_service
 from src.app.services.auth_service import auth_service
+from src.app.services.bill_service import bill_service
 
 logger = logging.getLogger(__name__)
 
@@ -115,3 +119,36 @@ async def change_my_password(
     )
 
     return {"message": "Password updated successfully"}
+
+
+@router.get(
+    "/me/bills",
+    response_model=BillUserListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="List my bills",
+    description="Get a paginated and filterable list of my bills.",
+    dependencies=[
+        Depends(require_user),
+        Depends(rate_limit_api),
+    ],  # Simplified the auth check)
+)
+async def get_my_bills(
+    *,
+    current_user: User = Depends(get_current_verified_user),
+    db: AsyncSession = Depends(get_session),
+    pagination: PaginationParams = Depends(get_pagination_params),
+    search_params: BillSearchParams = Depends(BillSearchParams),
+    order_by: str = Query("created_at", description="Field to order by"),
+    order_desc: bool = Query(True, description="Order descending"),
+):
+    """get paginated response of current_user bills"""
+
+    return await bill_service.get_my_bills(
+        db=db,
+        user_id=current_user.id,
+        skip=pagination.skip,
+        limit=pagination.limit,
+        order_by=order_by,
+        order_desc=order_desc,
+        filters=search_params.model_dump(exclude_none=True),
+    )

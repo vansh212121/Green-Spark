@@ -7,7 +7,7 @@ from src.app.core.exception_handler import register_exception_handlers
 from src.app.core.middleware import register_middlewares
 from src.app.db.session import db
 from src.app.utils.deps import get_health_status
-from src.app.api.v1.endpoints import user, auth, admin, bill, appliance
+from src.app.api.v1.endpoints import user, auth, admin, bill, appliance, insights
 from src.app.db import base
 
 @asynccontextmanager
@@ -46,6 +46,7 @@ def create_application() -> FastAPI:
     app.include_router(admin.router)
     app.include_router(bill.router)
     app.include_router(appliance.router)
+    app.include_router(insights.router)
 
     return app
 

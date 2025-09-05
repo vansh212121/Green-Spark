@@ -69,7 +69,7 @@ class InsightsRepository(BaseRepository[Insight]):
         """create an insight"""
 
         db.add(obj_in)
-        await db.commit(obj_in)
+        await db.commit()
         await db.refresh(obj_in)
         return obj_in
 

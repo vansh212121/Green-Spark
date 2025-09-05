@@ -3,7 +3,7 @@ import uuid
 from typing import Optional, List, Dict, Any, TypeVar, Generic, Tuple
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-
+from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select, func, and_, delete
 
@@ -113,7 +113,11 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
         order_desc: bool = True,
     ) -> Tuple[List[UserAppliance], int]:
         """Get paginated list of user_appliancess by user_id"""
-        query = select(self.model).where(self.model.bill_id == bill_id)
+        query = (
+            select(self.model)
+            .where(self.model.bill_id == bill_id)
+            .options(selectinload(self.model.estimates))  # 👈 force load estimates
+        )
 
         # Count total
         count_query = select(func.count()).select_from(query.subquery())

@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, date
 from src.app.models.bill_model import BillSource, BillStatus
 from src.app.core.exceptions import ValidationError
+from src.app.schemas.appliance_schema import UserApplianceDetailedResponse
 
 
 class BillBase(BaseModel):
@@ -178,12 +179,37 @@ class BillDetailedResponse(BillResponse):
         validation_alias="normalized_json",  # 👈 ensures it maps correctly
         description="Structured normalized bill data",
     )
+    user_appliances: List[UserApplianceDetailedResponse] = Field(
+        default_factory=list, description="List of bills for the user"
+    )
 
 
 class BillListResponse(BaseModel):
     """Response for paginated user list."""
 
     items: List[BillResponse] = Field(..., description="List of bills")
+    total: int = Field(..., ge=0, description="Total number of bills")
+    page: int = Field(..., ge=1, description="Current page number")
+    pages: int = Field(..., ge=0, description="Total number of pages")
+    size: int = Field(..., ge=1, le=100, description="Number of items per page")
+
+    @property
+    def has_next(self) -> bool:
+        """Check if there's a next page."""
+        return self.page < self.pages
+
+    @property
+    def has_previous(self) -> bool:
+        """Check if there's a previous page."""
+        return self.page > 1
+
+
+class BillUserListResponse(BaseModel):
+    """Response for paginated user list."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    items: List[BillDetailedResponse] = Field(..., description="List of bills")
     total: int = Field(..., ge=0, description="Total number of bills")
     page: int = Field(..., ge=1, description="Current page number")
     pages: int = Field(..., ge=0, description="Total number of pages")

@@ -28,4 +28,5 @@ celery_app.conf.imports = [
     "src.app.tasks.email_tasks",
     "src.app.tasks.parsing_tasks",
     "src.app.tasks.estimation_tasks",
+    "src.app.tasks.insights_task"
 ]

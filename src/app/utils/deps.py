@@ -284,10 +284,13 @@ rate_limit_auth = RateLimitChecker(
     max_requests=5, window_seconds=60, identifier_type="ip"
 )
 rate_limit_api = RateLimitChecker(
-    max_requests=100, window_seconds=60, identifier_type="user"
+    max_requests=35, window_seconds=60, identifier_type="user"
 )
 rate_limit_heavy = RateLimitChecker(
     max_requests=10, window_seconds=60, identifier_type="user"
+)
+rate_limit_refresh = RateLimitChecker(
+    max_requests=3, window_seconds=86400, identifier_type="user"
 )
 
 

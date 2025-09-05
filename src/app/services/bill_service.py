@@ -17,6 +17,7 @@ from src.app.schemas.bill_schema import (
     BillDetailedResponse,
     BillListResponse,
     BillResponse,
+    BillUserListResponse,
     BillUploadResponse,
     BillConfirmRequest,
     NormalizedBillSchema,
@@ -186,7 +187,74 @@ class BillService:
         )
 
         return response
-    
+
+    async def get_my_bills(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 50,
+        filters: Optional[Dict[str, Any]] = None,
+        order_by: str = "created_at",
+        order_desc: bool = True,
+    ) -> BillUserListResponse:
+        """
+        Lists bills with pagination and filtering.
+
+        Args:
+            db: Database session
+            current_user: User making the request
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            filters: Optional filters to apply
+            order_by: Field to order by
+            order_desc: Whether to order in descending order
+
+        Returns:
+            UserListResponse: Paginated list of users
+
+        Raises:
+            NotAuthorized: If user lacks permission to list users
+            ValidationError: If pagination parameters are invalid
+        """
+        # Authorization check: admins can list all users
+        user = await self.user_repository.get(db=db, obj_id=user_id)
+
+        raise_for_status(
+            condition=(user is None),
+            exception=ResourceNotFound,
+            detail=f"user with id {user_id} not found.",
+            resource_type="User",
+        )
+
+        # Input validation
+        if skip < 0:
+            raise ValidationError("Skip parameter must be non-negative")
+        if limit <= 0 or limit > 100:
+            raise ValidationError("Limit must be between 1 and 100")
+
+        # Delegate fetching to the repository
+        bills, total = await self.bill_repository.get_my_bills(
+            db=db,
+            skip=skip,
+            limit=limit,
+            filters=filters,
+            order_by=order_by,
+            order_desc=order_desc,
+        )
+
+        # Calculate pagination info
+        page = (skip // limit) + 1
+        total_pages = (total + limit - 1) // limit  # Ceiling division
+
+        # Construct the response schema
+        response = BillUserListResponse(
+            items=bills, total=total, page=page, pages=total_pages, size=limit
+        )
+
+        return response
+
     def create_upload_url(
         self, *, user: User, filename: str, content_type: str
     ) -> BillUploadResponse:

@@ -1,115 +1,108 @@
-# # app/tasks/insight_tasks.py
+# app/tasks/insight_tasks.py
 
-# import logging
-# import uuid
-# import asyncio
-# from datetime import datetime
+import logging
+import uuid
+import asyncio
+from datetime import datetime
 
-# from src.app.core.celery_app import celery_app
-# from src.app.db.session import db
-# from src.app.crud.bill_crud import bill_repository
-# from src.app.crud.insight_crud import insight_repository
-# from src.app.models.insight_model import Insight, InsightStatus
-# from src.app.schemas.insight_schema import InsightRead, InsightKPIs, InsightApplianceBreakdown, InsightRecommendation
+from src.app.core.celery_app import celery_app
+from src.app.db.session import db
+from src.app.crud.insights_crud import insights_repository
+from src.app.models.insights_model import InsightStatus
+from src.app.schemas.bill_schema import BillResponse, BillDetailedResponse
+from src.app.services.ai_service import ai_service
+from src.app.services.bill_service import bill_service
 
-# logger = logging.getLogger(__name__)
-
-# def _run_v1_rule_engine(context: dict) -> dict:
-#     """
-#     Our simple, V1 rule-based AI engine.
-#     Takes the full context and generates the final InsightRead dictionary.
-#     """
-#     recommendations = []
-#     # Rule 1: High consumption
-#     if context["current_bill"].kwh_total > 400:
-#         recommendations.append(InsightRecommendation(
-#             priority=1, title="High Overall Consumption",
-#             description="Your energy usage this month was high. Review your top appliances to find savings opportunities."
-#         ))
-        
-#     # Rule 2: Trend analysis
-#     kwh_change = None
-#     cost_change = None
-#     trend = "stable"
-#     if context["previous_bill"]:
-#         kwh_change = ((context["current_bill"].kwh_total - context["previous_bill"].kwh_total) / context["previous_bill"].kwh_total) * 100
-#         cost_change = ((context["current_bill"].cost_total - context["previous_bill"].cost_total) / context["previous_bill"].cost_total) * 100
-#         if kwh_change > 10:
-#             trend = "increasing"
-#             recommendations.append(InsightRecommendation(
-#                 priority=2, title="Usage Increasing",
-#                 description=f"Your consumption increased by {kwh_change:.0f}% compared to last month. Let's look at why."
-#             ))
-#         elif kwh_change < -10:
-#             trend = "decreasing"
-
-#     # Rule 3: Highest consumer
-#     breakdown = []
-#     highest_consumer = None
-#     if context["estimates"]:
-#         # ... logic to calculate breakdown percentages ...
-#         # For simplicity, let's create a placeholder
-#         highest_consumer_estimate = max(context["estimates"], key=lambda x: x.estimated_kwh)
-#         appliance_name = highest_consumer_estimate.user_appliance.custom_name
-        
-#         if (highest_consumer_estimate.estimated_kwh / context["current_bill"].kwh_total) > 0.4:
-#              recommendations.append(InsightRecommendation(
-#                 priority=1, title=f"Check Your {appliance_name}",
-#                 description=f"Your '{appliance_name}' is responsible for a large portion of your bill. Ensure it's running efficiently."
-#             ))
-
-#     # Assemble the final JSON report using our Pydantic schemas
-#     report = InsightRead(
-#         bill_id=context["current_bill"].id,
-#         generated_at=datetime.utcnow(),
-#         kpis=InsightKPIs(
-#             kwh_total=context["current_bill"].kwh_total,
-#             cost_total=context["current_bill"].cost_total,
-#             kwh_change_percent=kwh_change,
-#             cost_change_percent=cost_change,
-#             trend=trend,
-#         ),
-#         consumption_breakdown=breakdown, # You would build the breakdown list here
-#         recommendations=recommendations,
-#     )
-#     return report.model_dump(mode="json")
+logger = logging.getLogger(__name__)
 
 
-# @celery_app.task(name="tasks.generate_insights")
-# def generate_insights_task(bill_id: str):
-#     """Celery task to generate insights for a bill."""
-#     logger.info(f"Worker received task: Generate insights for bill_id: {bill_id}")
+@celery_app.task(name="tasks.generate_insights")
+def generate_insights_task(bill_id: str, user_id: str):
+    """Celery task to generate insights for a bill by calling the AI service."""
+    logger.info(f"Worker received task: Generate insights for bill_id: {bill_id}")
 
-#     async def main():
-#         async with db.session_context() as session:
-#             try:
-#                 bill_uuid = uuid.UUID(bill_id)
-#                 insight = await insight_repository.get_by_bill_id(db=session, bill_id=bill_uuid)
-#                 if not insight or insight.status != InsightStatus.PENDING:
-#                     logger.warning(f"Insight generation not in pending state for bill {bill_id}. Skipping.")
-#                     return
+    async def main():
+        bill_uuid = uuid.UUID(bill_id)
+        user_uuid = uuid.UUID(user_id)
 
-#                 # 1. Assemble the "Monthly Insight Context"
-#                 current_bill = await bill_repository.get(db=session, bill_id=bill_uuid)
-#                 # In a real implementation, you'd also fetch previous bills
-#                 context = {
-#                     "current_bill": current_bill,
-#                     "previous_bill": await bill_repository.get_latest_by_user(db=session, user_id=current_bill.user_id), # Simplified
-#                     "estimates": current_bill.estimates,
-#                 }
+        async with db.session_context() as session:
+            try:
+                insight = await insights_repository.get(db=session, bill_id=bill_uuid)
+                if not insight:
+                    logger.error(
+                        f"Insight record for bill {bill_id} not found. Aborting task."
+                    )
+                    return
 
-#                 # 2. Run the rule engine to get the final JSON report
-#                 report_json = _run_v1_rule_engine(context)
-                
-#                 # 3. Update the insight record with the result
-#                 insight.structured_data = report_json
-#                 insight.status = InsightStatus.COMPLETED
-#                 session.add(insight)
-#                 await session.commit()
-#                 logger.info(f"Successfully generated insights for bill {bill_id}")
+                # 1. Fetch bills sorted by billing period
+                bill_list_response = await bill_service.get_my_bills(
+                    db=session,
+                    user_id=user_uuid,
+                    limit=12,
+                    skip=0,
+                    order_by="billing_period_start",
+                    order_desc=True,
+                    filters=None,
+                )
 
-#             except Exception as e:
-#                 logger.error(f"Failed to generate insights for bill {bill_id}: {e}", exc_info=True)
-#                 # ... (error handling to set status to FAILED) ...
+                all_bills = bill_list_response.items
 
-#     asyncio.run(main())
+                if not all_bills:
+                    raise ValueError("No bills found for user to generate insights.")
+
+                # Find the current bill
+                current_bill = next((b for b in all_bills if b.id == bill_uuid), None)
+                if not current_bill:
+                    raise ValueError(
+                        f"Current bill {bill_uuid} not found in user's bill list."
+                    )
+
+                # Find the previous bill (one before current, by billing_period_start order)
+                prev_bill = None
+                for idx, bill in enumerate(all_bills):
+                    if bill.id == bill_uuid and idx + 1 < len(all_bills):
+                        prev_bill = all_bills[idx + 1]
+                        break
+
+                # 2. Assemble context
+                context = {
+                    "current_bill": BillDetailedResponse.model_validate(
+                        current_bill
+                    ).model_dump(mode="json"),
+                    "previous_bill": (
+                        BillDetailedResponse.model_validate(prev_bill).model_dump(
+                            mode="json"
+                        )
+                        if prev_bill
+                        else None
+                    ),
+                }
+
+                # 3. Call the AI service to get the final, validated Pydantic object
+                validated_report = ai_service.generate_insights_from_context(context)
+
+                # 4. Update the insight record with the result
+                insight.structured_data = validated_report.model_dump(mode="json")
+                insight.status = InsightStatus.COMPLETED
+                insight.generated_at = datetime.utcnow()
+                session.add(insight)
+                await session.commit()
+                logger.info(
+                    f"Successfully generated and saved insights for bill {bill_id}"
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"Failed to generate insights for bill {bill_id}: {e}",
+                    exc_info=True,
+                )
+                async with db.session_context() as error_session:
+                    insight = await insights_repository.get(
+                        db=error_session, bill_id=uuid.UUID(bill_id)
+                    )
+                    if insight:
+                        insight.status = InsightStatus.FAILED
+                        error_session.add(insight)
+                        await error_session.commit()
+
+    asyncio.run(main())

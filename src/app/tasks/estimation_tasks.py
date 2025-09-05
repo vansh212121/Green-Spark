@@ -13,7 +13,7 @@ from src.app.models.bill_model import Bill
 from src.app.models.appliance_model import ApplianceEstimate
 from src.app.core.config import settings
 from src.app.db.session import Database
-# from src.app.tasks.insight_tasks import generate_insights_task # For the next phase
+from src.app.tasks.insights_task import generate_insights_task
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +25,6 @@ async def _perform_estimation_for_bill(session, bill: Bill):
     """
     actual_total_kwh = bill.kwh_total
 
-    # --- THIS IS THE KEY CHANGE for our "bill-centric" model ---
-    # 1. Get the appliance inventory FOR THIS SPECIFIC BILL.
     appliances_for_this_bill, _ = await appliance_repository.get_by_bills(
         db=session,
         bill_id=bill.id,
@@ -111,21 +109,8 @@ async def _perform_estimation_for_bill(session, bill: Bill):
     )
 
     # 6. Trigger the next step in the pipeline (when we build it)
-    # generate_insights_task.delay(str(bill.id))
+    generate_insights_task.delay(str(bill.id), str(bill.user_id))
 
-
-# @celery_app.task(name="tasks.estimate_appliances_for_bill")
-# def estimate_appliances_for_bill_task(bill_id: str):
-#     """Celery task to run estimation for a single bill."""
-#     logger.info(f"Worker received task: Estimate appliances for bill_id: {bill_id}")
-
-#     async def main():
-#         async with db.session_context() as session:
-#             bill = await bill_repository.get(db=session, bill_id=uuid.UUID(bill_id))
-#             if bill:
-#                 await _perform_estimation_for_bill(session, bill)
-
-#     asyncio.run(main())
 
 @celery_app.task(name="tasks.estimate_appliances_for_bill")
 def estimate_appliances_for_bill_task(bill_id: str):
@@ -139,7 +124,7 @@ def estimate_appliances_for_bill_task(bill_id: str):
     async def main():
         # 1. Create a NEW, LOCAL Database instance for this task run.
         local_db = Database(str(settings.DATABASE_URL))
-        
+
         # 2. Connect and get a session from this new local instance.
         await local_db.connect()
         async with local_db.session_context() as session:

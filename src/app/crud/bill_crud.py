@@ -2,10 +2,10 @@ import logging
 import uuid
 from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, timezone
-
+from sqlalchemy.orm import selectinload
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select, func, and_, or_, delete
-
+from src.app.models.appliance_model import UserAppliance
 from src.app.core.exception_utils import handle_exceptions
 from src.app.core.exceptions import InternalServerError
 
@@ -62,6 +62,44 @@ class BillRepository:
     ) -> Tuple[List[Bill], int]:
         """Get multiple bills with filtering and pagination."""
         query = select(self.model)
+
+        # Apply filters
+        if filters:
+            query = self._apply_filters(query, filters)
+
+        # Count total
+        count_query = select(func.count()).select_from(query.subquery())
+        total = (await db.execute(count_query)).scalar_one()
+
+        # Apply ordering
+        query = self._apply_ordering(query, order_by, order_desc)
+
+        # Apply pagination
+        paginated_query = query.offset(skip).limit(limit)
+        result = await db.execute(paginated_query)
+        bills = result.scalars().all()
+
+        return bills, total
+    
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
+    async def get_my_bills(
+        self,
+        db: AsyncSession,
+        *,
+        skip: int = 0,
+        limit: int = 100,
+        filters: Optional[Dict[str, Any]] = None,
+        order_by: str = "created_at",
+        order_desc: bool = True,
+    ) -> Tuple[List[Bill], int]:
+        """Get multiple bills with filtering and pagination."""
+        query = select(self.model).options(
+        selectinload(self.model.user_appliances).selectinload(UserAppliance.estimates),
+        selectinload(self.model.estimates),
+    )
 
         # Apply filters
         if filters:

@@ -28,6 +28,7 @@ class InsightCreate(BaseModel):
     bill_id: uuid.UUID
     user_id: uuid.UUID
 
+
 class InsightKPIs(BaseModel):
     kwh_total: float = Field(..., ge=0)
     cost_total: float = Field(..., ge=0)
@@ -59,6 +60,13 @@ class InsightRecommendation(BaseModel):
     priority: int = Field(..., ge=1, le=3, description="1=high, 2=medium, 3=low")
     title: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=1, max_length=1000)
+    savings: Optional[str] = Field(
+        None, min_length=1, max_length=1000
+    )  # e.g. "Save ₹300/month"
+    effort: Optional[str] = Field(
+        None, min_length=1, max_length=1000
+    )  # e.g. "Easy", "Moderate", "High investment"
+    impact: Optional[str] = Field(None, min_length=1, max_length=1000)
 
     @field_validator("title", "description")
     def strip_text(cls, v: str) -> str:
@@ -71,7 +79,7 @@ class InsightRecommendation(BaseModel):
 # --- The Main V1 Response Schema ---
 
 
-class InsightResponee(BaseModel):
+class InsightResponse(BaseModel):
     """
     The response schema for a completed Insight Report.
     This is the data that will be stored in the 'structured_data' JSON field.
@@ -84,7 +92,7 @@ class InsightResponee(BaseModel):
     recommendations: List[InsightRecommendation]
 
     @model_validator(mode="after")
-    def validate_breakdown_total(self) -> "InsightResponee":
+    def validate_breakdown_total(self) -> "InsightResponse":
         total_percentage = sum(
             b.percentage_of_total for b in self.consumption_breakdown
         )

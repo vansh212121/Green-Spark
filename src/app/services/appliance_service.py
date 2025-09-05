@@ -236,7 +236,7 @@ class ApplianceService:
         )
         user = await self.user_repository.get(db=db, obj_id=user_id)
 
-        if user.role != UserRole.ADMIN:
+        if user.id != bill.user_id:
             raise NotAuthorized("only administrators can access this")
 
         # Input validation
