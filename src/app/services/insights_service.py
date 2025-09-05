@@ -144,7 +144,7 @@ class InsightService:
         await self.insights_repository.create(db=db, obj_in=insight_create_schema)
 
         # Trigger the Celery task to run in the background
-        # generate_insights_task.delay(str(bill_id))
+        generate_insights_task.delay(str(bill_id), str(current_user.id))
 
         logger.info(
             f"Insight generation queued for bill {bill_id} by user {current_user.id}"

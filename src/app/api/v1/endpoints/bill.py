@@ -1,7 +1,7 @@
 import logging
 import uuid
 from typing import Dict
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, File, UploadFile
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.app.db.session import get_session
@@ -23,6 +23,10 @@ from src.app.utils.deps import (
     require_user,
     rate_limit_api,
 )
+
+# --NEW IMPORTS---
+from src.app.core.config import settings
+import boto3
 
 logger = logging.getLogger(__name__)
 
@@ -171,3 +175,34 @@ async def trigger_bill_estimation(
         db=db, bill_id=bill_id, current_user=current_user
     )
     return {"message": "Appliance estimation has been queued."}
+
+
+@router.post(
+    "/direct-upload",
+    status_code=status.HTTP_200_OK,
+    summary="Directly upload file to S3 (testing only)",
+    description="Upload a file to MinIO/S3 and return the file_uri for use in /confirm."
+)
+async def direct_upload_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_verified_user),
+):
+    # 1. Init boto3 client (direct, not via s3_service)
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=settings.S3_ENDPOINT_URL,
+        aws_access_key_id=settings.S3_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.S3_SECRET_ACCESS_KEY,
+    )
+    bucket_name = settings.S3_BUCKET_NAME
+
+    # 2. Generate object key
+    object_key = f"{current_user.id}/{uuid.uuid4()}-{file.filename}"
+
+    # 3. Upload file directly to S3
+    s3_client.upload_fileobj(file.file, bucket_name, object_key)
+
+    # 4. Build file_uri (same format your confirm API expects)
+    file_uri = f"s3://{bucket_name}/{object_key}"
+
+    return {"file_uri": file_uri}

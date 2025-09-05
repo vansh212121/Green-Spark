@@ -35,7 +35,6 @@ from src.app.core.exceptions import (
     ValidationError,
 )
 from src.app.tasks.parsing_tasks import parse_digital_pdf_task
-from src.app.tasks.estimation_tasks import estimate_appliances_for_bill_task
 
 logger = logging.getLogger(__name__)
 
@@ -389,6 +388,9 @@ class BillService:
             raise NotAuthorized(
                 "You are not authorized to trigger estimation for this bill."
             )
+            
+        from src.app.tasks.estimation_tasks import estimate_appliances_for_bill_task
+        
 
         estimate_appliances_for_bill_task.delay(str(bill_id))
         logger.info(

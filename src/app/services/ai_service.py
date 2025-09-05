@@ -68,6 +68,7 @@ class AIService:
             ]
           }
         }
+        Return all dates strictly in YYYY-MM-DD format.
 
         Analyze the document and provide ONLY the JSON object. Do not include any explanatory text or markdown formatting.
         """

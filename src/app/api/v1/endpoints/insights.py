@@ -29,7 +29,7 @@ router = APIRouter(
 @router.get(
     "/status/{bill_id}",
     response_model=InsightStatusResponse,
-    summary="Confirm insights Status",
+    summary="Get or Confirm insights Status",
     description="Confirm insights Status",
     dependencies=[Depends(rate_limit_api), Depends(require_user)],
 )
