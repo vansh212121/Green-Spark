@@ -161,15 +161,20 @@ class InsightService:
         raise_for_status(
             condition=insight is None,
             exception=ResourceNotFound,
-            detail=f"insight with {bill_id} not Found.",
+            detail=f"Insight for bill {bill_id} not found.",
             resource_type="Insight",
         )
 
-        # Authorization check (redundant if called after get_or_trigger, but good for safety)
-        if (
-            insight.user_id != current_user.id
-            and not current_user.role >= UserRole.ADMIN
-        ):
+        # ✅ Fetch the bill to validate ownership
+        bill = await self.bill_repository.get(db=db, bill_id=bill_id)
+        raise_for_status(
+            condition=bill is None,
+            exception=ResourceNotFound,
+            detail=f"Bill with id {bill_id} not found.",
+            resource_type="Bill",
+        )
+
+        if str(bill.user_id) != str(current_user.id) and not current_user.is_admin:
             raise NotAuthorized("You are not authorized to view this insight report.")
 
         if insight.status != InsightStatus.COMPLETED:

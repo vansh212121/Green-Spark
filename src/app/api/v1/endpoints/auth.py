@@ -251,7 +251,7 @@ async def email_change(
     )
 
     return {
-        "message": f"Verification link sent to this eamil:{email.new_email}, verify to reflect changes"
+        "message": f"Verification link sent to this email:{email.new_email}, verify to reflect changes"
     }
 
 

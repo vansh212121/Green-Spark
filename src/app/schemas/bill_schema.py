@@ -1,5 +1,5 @@
 import uuid
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from pydantic import BaseModel, Field, ConfigDict, model_validator, field_validator
 from typing import Dict, Any, Optional, List
 from datetime import datetime, date
 from src.app.models.bill_model import BillSource, BillStatus
@@ -113,6 +113,24 @@ class NormalizedPeriod(BaseModel):
     end: date
     bill_date: Optional[date] = None
     due_date: Optional[date] = None
+
+    @field_validator("start", "end", "bill_date", "due_date", mode="before")
+    @classmethod
+    def normalize_date(cls, value):
+        if value is None:
+            return value
+        if isinstance(value, date):
+            return value
+
+        if isinstance(value, str):
+            # Try multiple formats
+            for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y"):
+                try:
+                    return datetime.strptime(value, fmt).date()
+                except ValidationError:
+                    continue
+
+        raise ValidationError(f"Invalid date format: {value}")
 
 
 class NormalizedReadings(BaseModel):

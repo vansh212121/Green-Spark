@@ -21,6 +21,7 @@ from src.app.utils.deps import (
     get_pagination_params,
     PaginationParams,
     require_user,
+    require_admin,
     rate_limit_api,
 )
 
@@ -43,7 +44,7 @@ router = APIRouter(
     summary="List all bills",
     description="Get a paginated and filterable list of all bills.",
     dependencies=[
-        Depends(require_user),
+        Depends(require_admin),
         Depends(rate_limit_api),
     ],  # Simplified the auth check
 )

@@ -28,7 +28,16 @@ class BillRepository:
     )
     async def get(self, db: AsyncSession, *, bill_id: uuid.UUID) -> Optional[Bill]:
         """Get a bill by it's ID"""
-        statement = select(self.model).where(self.model.id == bill_id)
+        statement = (
+            select(self.model)
+            .where(self.model.id == bill_id)
+            .options(
+                selectinload(self.model.user_appliances).selectinload(
+                    UserAppliance.estimates
+                ),
+                selectinload(self.model.estimates),
+            )
+        )
         result = await db.execute(statement)
         return result.scalar_one_or_none()
 
@@ -80,7 +89,7 @@ class BillRepository:
         bills = result.scalars().all()
 
         return bills, total
-    
+
     @handle_exceptions(
         default_exception=InternalServerError,
         message="An unexpected database error occurred.",
@@ -89,6 +98,7 @@ class BillRepository:
         self,
         db: AsyncSession,
         *,
+        user_id: uuid.UUID,
         skip: int = 0,
         limit: int = 100,
         filters: Optional[Dict[str, Any]] = None,
@@ -96,10 +106,16 @@ class BillRepository:
         order_desc: bool = True,
     ) -> Tuple[List[Bill], int]:
         """Get multiple bills with filtering and pagination."""
-        query = select(self.model).options(
-        selectinload(self.model.user_appliances).selectinload(UserAppliance.estimates),
-        selectinload(self.model.estimates),
-    )
+        query = (
+            select(self.model)
+            .where(self.model.user_id == user_id)  # <-- enforce scoping
+            .options(
+                selectinload(self.model.user_appliances).selectinload(
+                    UserAppliance.estimates
+                ),
+                selectinload(self.model.estimates),
+            )
+        )
 
         # Apply filters
         if filters:

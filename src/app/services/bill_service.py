@@ -77,7 +77,7 @@ class BillService:
         raise_for_status(
             condition=is_not_self,
             exception=NotAuthorized,
-            detail=f"You are not authorized to {action} this user.",
+            detail=f"You are not authorized to {action} this bill.",
         )
 
     async def _load_bill_schema_from_db(
@@ -239,6 +239,7 @@ class BillService:
             skip=skip,
             limit=limit,
             filters=filters,
+            user_id=user_id,
             order_by=order_by,
             order_desc=order_desc,
         )

@@ -20,7 +20,6 @@ from src.app.schemas.appliance_schema import (
     ApplianceCatalogCreate,
 )
 from src.app.services.appliance_service import appliance_service
-from src.app.models.appliance_model import ApplianceCatalog
 from src.app.schemas.user_schema import (
     UserResponse,
     UserListResponse,
@@ -187,7 +186,7 @@ async def delete_user(
         db=db, user_id_to_delete=user_id, current_user=current_user
     )
 
-    return {"message": "User delete succesfully."}
+    return {"message": "User deleted succesfully."}
 
 
 @router.get(

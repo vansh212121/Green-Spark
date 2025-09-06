@@ -63,7 +63,11 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
         self, db: AsyncSession, *, obj_id: uuid.UUID
     ) -> Optional[UserAppliance]:
         """"""
-        statement = select(self.model).where(self.model.id == obj_id)
+        statement = (
+            select(self.model)
+            .where(self.model.id == obj_id)
+            .options(selectinload(self.model.estimates))
+        )
         result = await db.execute(statement)
         return result.scalar_one_or_none()
 
@@ -82,7 +86,11 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
         order_desc: bool = True,
     ) -> Tuple[List[UserAppliance], int]:
         """Get paginated list of user_appliancess by user_id"""
-        query = select(self.model).where(self.model.user_id == user_id)
+        query = (
+            select(self.model)
+            .where(self.model.user_id == user_id)
+            .options(selectinload(self.model.estimates))
+        )
 
         # Count total
         count_query = select(func.count()).select_from(query.subquery())

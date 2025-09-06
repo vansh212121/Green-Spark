@@ -448,6 +448,13 @@ class UserService:
 
         # 1. Fetch the user to delete
         user_to_delete = await self.user_repository.get(db=db, obj_id=user_id_to_delete)
+        
+        raise_for_status(
+            condition=(user_to_delete is None),
+            exception=ResourceNotFound,
+            detail=f"User with id {user_id_to_delete} not Found",
+            resource_type="User"
+        )
 
         # 2. Perform authorization check
         self._check_authorization(

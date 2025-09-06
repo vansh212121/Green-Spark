@@ -101,7 +101,7 @@ class ApplianceService:
 
     async def get_appliance_by_id(
         self, db: AsyncSession, *, current_user: User, appliance_id: uuid.UUID
-    ) -> Optional[UserAppliance]:
+    ) -> Optional[UserApplianceDetailedResponse]:
         """Retrieve appliance by it's ID"""
 
         appliance = await cache_service.get_or_set(
@@ -116,7 +116,7 @@ class ApplianceService:
         # Fine-grained authorization check
         if current_user.is_admin:
             return appliance
-        is_not_self = current_user.id != appliance.user_id
+        is_not_self = str(current_user.id) != str(appliance.user_id)
 
         raise_for_status(
             condition=(is_not_self),
@@ -166,8 +166,6 @@ class ApplianceService:
             detail=f"User with id {user_id} not Found",
             resource_type="User",
         )
-        if user.role != UserRole.ADMIN:
-            raise NotAuthorized("only administrators can access this")
 
         # Input validation
         if skip < 0:
@@ -428,6 +426,11 @@ class ApplianceService:
             action="delete",
         )
 
+        if str(appliance_to_delete.bill_id) != str(bill.id):
+            raise NotAuthorized(
+                f"Appliance {appliance_id} does not belong to bill {bill_id}."
+            )
+
         # 4. Perform the deletion
         await self.appliance_repository.delete(db=db, obj_id=appliance_id)
 
@@ -454,12 +457,14 @@ class ApplianceService:
             detail=f"Bill with the id {bill_id} not Found.",
             resource_type="Bill",
         )
-
-        if bill.user_id != current_user.id and not current_user.role >= UserRole.ADMIN:
+        if (
+            str(bill.user_id) != str(current_user.id)
+            and current_user.role != UserRole.ADMIN
+        ):
             raise NotAuthorized(
-                "You are not authorized to add an appliance to this bill."
+                "You are not authorized to view estimates of this bill."
             )
-            
+
         return await self.appliance_repository.get_all_estimates(db=db, bill_id=bill_id)
 
     # ==========CATALOG SERVICES============

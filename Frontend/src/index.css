@@ -1,0 +1,143 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Energy Analytics Dashboard Design System */
+
+@layer base {
+  :root {
+    /* Energy-inspired Primary Palette */
+    --primary-50: 138 76% 97%; /* #f0fdf4 - Very light green */
+    --primary-100: 138 72% 93%; /* #dcfce7 - Light green */
+    --primary-500: 142 71% 45%; /* #22c55e - Main green */
+    --primary-600: 142 76% 36%; /* #16a34a - Darker green */
+    --primary-700: 142 72% 29%; /* #15803d - Deep green */
+
+    /* Electric blue secondary */
+    --secondary-50: 214 100% 97%; /* #eff6ff - Light blue */
+    --secondary-100: 214 95% 93%; /* #dbeafe - Subtle blue */
+    --secondary-500: 217 91% 60%; /* #3b82f6 - Electric blue */
+    --secondary-600: 221 83% 53%; /* #2563eb - Darker blue */
+
+    /* Warm neutral palette */
+    --gray-50: 60 9% 98%; /* #fafaf9 - Background */
+    --gray-100: 60 5% 96%; /* #f5f5f4 - Card backgrounds */
+    --gray-200: 20 6% 90%; /* #e7e5e4 - Borders */
+    --gray-400: 20 4% 65%; /* #a8a29e - Muted text */
+    --gray-600: 20 5% 35%; /* #57534e - Secondary text */
+    --gray-800: 24 6% 17%; /* #292524 - Primary text */
+    --gray-900: 24 10% 10%; /* #1c1917 - Headers */
+
+    /* Accent colors for alerts */
+    --warning-400: 45 93% 58%; /* #fbbf24 - Energy warnings */
+    --warning-500: 45 93% 47%; /* #f59e0b - Attention */
+    --danger-400: 0 91% 71%; /* #f87171 - High usage alerts */
+    --success-400: 142 76% 73%; /* #4ade80 - Savings achieved */
+
+    /* Semantic tokens - Cream/Beige Theme */
+    --background: 48 15% 97%; /* Warm cream background */
+    --foreground: 222.2 84% 4.9%;
+    --card: 48 20% 99%; /* Warm beige cards */
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 48 20% 99%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 142 71% 45%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 48 10% 94%; /* Subtle cream muted */
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 48 15% 92%; /* Cream accent */
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 48 20% 88%; /* Cream borders */
+    --input: 48 20% 94%; /* Cream inputs */
+    --ring: 142 71% 45%;
+    --radius: 0.75rem;
+
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(var(--primary-500)) 0%,
+      hsl(var(--primary-600)) 100%
+    );
+    --gradient-secondary: linear-gradient(
+      135deg,
+      hsl(var(--secondary-500)) 0%,
+      hsl(var(--secondary-600)) 100%
+    );
+    --gradient-subtle: linear-gradient(
+      135deg,
+      hsl(var(--primary-50)) 0%,
+      hsl(var(--secondary-50)) 100%
+    );
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scale-in {
+    0% {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-up {
+    0% {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
