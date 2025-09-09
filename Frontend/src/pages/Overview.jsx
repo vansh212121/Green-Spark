@@ -88,10 +88,10 @@
 //           </div>
 //         </div>
 
-//         <BillSelector
-//           selectedBill={selectedBill}
-//           onBillChange={setSelectedBill}
-//         />
+// <BillSelector
+//   selectedBill={selectedBill}
+//   onBillChange={setSelectedBill}
+// />
 //       </header>
 
 //       {/* Key Metrics Cards */}
@@ -243,63 +243,15 @@
 
 // export default Overview;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   BarChart,
@@ -316,14 +268,14 @@ import {
   AreaChart,
   Area,
   Tooltip,
-  Legend
+  Legend,
 } from "recharts";
-import { 
-  Calendar, 
-  Download, 
-  Zap, 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  Calendar,
+  Download,
+  Zap,
+  TrendingUp,
+  TrendingDown,
   Activity,
   Leaf,
   DollarSign,
@@ -331,8 +283,9 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
-  Target
+  Target,
 } from "lucide-react";
+import { BillSelector } from "@/components/BillSelector";
 
 // Sample data
 const monthlyData = [
@@ -382,15 +335,15 @@ const insights = [
     title: "High Peak Usage",
     description: "Your consumption spikes between 6-8 PM",
     action: "View Details",
-    color: "bg-amber-50 border-amber-200"
+    color: "bg-amber-50 border-amber-200",
   },
   {
-    type: "success", 
+    type: "success",
     icon: CheckCircle2,
     title: "Energy Efficient Week",
     description: "15% below your monthly average",
     action: "See Trends",
-    color: "bg-green-50 border-green-200"
+    color: "bg-green-50 border-green-200",
   },
   {
     type: "info",
@@ -398,19 +351,19 @@ const insights = [
     title: "Budget On Track",
     description: "₹544 remaining for January",
     action: "Manage Budget",
-    color: "bg-blue-50 border-blue-200"
-  }
+    color: "bg-blue-50 border-blue-200",
+  },
 ];
 
 // Enhanced metric card component
-const MetricCard = ({ 
-  title, 
-  value, 
-  change, 
-  changeType, 
-  subtitle, 
+const MetricCard = ({
+  title,
+  value,
+  change,
+  changeType,
+  subtitle,
   icon: Icon,
-  trend = null 
+  trend = null,
 }) => {
   const getChangeColor = () => {
     if (changeType === "increase") return "text-red-600 bg-red-50";
@@ -431,19 +384,25 @@ const MetricCard = ({
           <div className="p-2 bg-primary-50 rounded-lg">
             <Icon className="w-5 h-5 text-primary-600" />
           </div>
-          <Badge className={`px-2 py-1 text-xs font-medium ${getChangeColor()}`}>
+          <Badge
+            className={`px-2 py-1 text-xs font-medium ${getChangeColor()}`}
+          >
             {getTrendIcon()}
             <span className="ml-1">{change}</span>
           </Badge>
         </div>
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">{title}</h3>
+          <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">
+            {title}
+          </h3>
           <p className="text-2xl font-bold text-gray-900">{value}</p>
           <p className="text-sm text-gray-500">{subtitle}</p>
         </div>
         {trend && (
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-primary-300" 
-               style={{width: `${trend}%`}} />
+          <div
+            className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-primary-300"
+            style={{ width: `${trend}%` }}
+          />
         )}
       </CardContent>
     </Card>
@@ -456,13 +415,21 @@ const ChartCard = ({ title, description, children, action }) => (
     <CardHeader className="pb-3">
       <div className="flex items-center justify-between">
         <div>
-          <CardTitle className="text-lg font-semibold text-gray-900">{title}</CardTitle>
+          <CardTitle className="text-lg font-semibold text-gray-900">
+            {title}
+          </CardTitle>
           {description && (
-            <CardDescription className="text-sm text-gray-600 mt-1">{description}</CardDescription>
+            <CardDescription className="text-sm text-gray-600 mt-1">
+              {description}
+            </CardDescription>
           )}
         </div>
         {action && (
-          <Button variant="ghost" size="sm" className="text-primary-600 hover:text-primary-700">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-primary-600 hover:text-primary-700"
+          >
             {action}
           </Button>
         )}
@@ -502,26 +469,26 @@ const Overview = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="flex flex-wrap gap-3">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="bg-white/80 backdrop-blur-sm hover:bg-white"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Last 6 months
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               className="bg-white/80 backdrop-blur-sm hover:bg-white"
             >
               <Download className="w-4 h-4 mr-2" />
               Export Data
             </Button>
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               className="bg-primary-500 hover:bg-primary-600 text-white"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
@@ -529,20 +496,36 @@ const Overview = () => {
             </Button>
           </div>
         </div>
-
+        <div className="mb-4 ">
+          <BillSelector
+            selectedBill={selectedBill}
+            onBillChange={setSelectedBill}
+          />
+        </div>
         {/* Quick Insights Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {insights.map((insight, index) => (
-            <Card key={index} className={`${insight.color} border hover:shadow-md transition-all duration-300`}>
+            <Card
+              key={index}
+              className={`${insight.color} border hover:shadow-md transition-all duration-300`}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="p-2 bg-white rounded-lg">
                     <insight.icon className="w-4 h-4 text-gray-700" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 mb-1">{insight.title}</h4>
-                    <p className="text-sm text-gray-600 mb-2">{insight.description}</p>
-                    <Button variant="link" size="sm" className="p-0 h-auto text-primary-600 hover:text-primary-700">
+                    <h4 className="font-medium text-gray-900 mb-1">
+                      {insight.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {insight.description}
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="p-0 h-auto text-primary-600 hover:text-primary-700"
+                    >
                       {insight.action} →
                     </Button>
                   </div>
@@ -595,41 +578,54 @@ const Overview = () => {
 
       {/* Enhanced Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-        <ChartCard 
-          title="6-Month Consumption Trend" 
+        <ChartCard
+          title="6-Month Consumption Trend"
           description="Monthly usage vs target comparison"
           action="View Details"
         >
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <BarChart
+              data={monthlyData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis 
-                dataKey="month" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#64748b', fontSize: 12 }}
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#64748b", fontSize: 12 }}
               />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#64748b', fontSize: 12 }}
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: "#64748b", fontSize: 12 }}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 }}
               />
-              <Bar dataKey="target" fill="#e2e8f0" radius={[2, 2, 0, 0]} name="Target" />
-              <Bar dataKey="consumption" fill="#22c55e" radius={[4, 4, 0, 0]} name="Actual" />
+              <Bar
+                dataKey="target"
+                fill="#e2e8f0"
+                radius={[2, 2, 0, 0]}
+                name="Target"
+              />
+              <Bar
+                dataKey="consumption"
+                fill="#22c55e"
+                radius={[4, 4, 0, 0]}
+                name="Actual"
+              />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard 
-          title="Bill Breakdown" 
+        <ChartCard
+          title="Bill Breakdown"
           description="Current month cost distribution"
           action="Breakdown"
         >
@@ -648,49 +644,48 @@ const Overview = () => {
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 }}
-                formatter={(value) => [`₹${value}`, 'Amount']}
+                formatter={(value) => [`₹${value}`, "Amount"]}
               />
-              <Legend 
-                verticalAlign="bottom" 
-                height={36}
-                iconType="circle"
-              />
+              <Legend verticalAlign="bottom" height={36} iconType="circle" />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard 
-          title="Weekly Usage Pattern" 
+        <ChartCard
+          title="Weekly Usage Pattern"
           description="Daily consumption with peak indicators"
           action="Optimize"
         >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={dailyUsage} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <LineChart
+              data={dailyUsage}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis 
-                dataKey="day" 
-                axisLine={false} 
+              <XAxis
+                dataKey="day"
+                axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748b', fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 12 }}
               />
-              <YAxis 
-                axisLine={false} 
+              <YAxis
+                axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748b', fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 12 }}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 }}
               />
               <Line
@@ -715,33 +710,36 @@ const Overview = () => {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard 
-          title="24-Hour Consumption" 
+        <ChartCard
+          title="24-Hour Consumption"
           description="Hourly usage pattern analysis"
           action="Schedule"
         >
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={hourlyPattern} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <AreaChart
+              data={hourlyPattern}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis 
-                dataKey="hour" 
-                axisLine={false} 
+              <XAxis
+                dataKey="hour"
+                axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748b', fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 12 }}
               />
-              <YAxis 
-                axisLine={false} 
+              <YAxis
+                axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748b', fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 12 }}
               />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 }}
-                formatter={(value) => [`${value} kWh`, 'Consumption']}
+                formatter={(value) => [`${value} kWh`, "Consumption"]}
               />
               <Area
                 type="monotone"
@@ -751,9 +749,15 @@ const Overview = () => {
                 strokeWidth={2}
               />
               <defs>
-                <linearGradient id="colorConsumption" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                <linearGradient
+                  id="colorConsumption"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
                 </linearGradient>
               </defs>
             </AreaChart>
@@ -782,12 +786,20 @@ const Overview = () => {
                   <TrendingDown className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-2">Reduce Peak Usage</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Reduce Peak Usage
+                  </h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    Your AC usage peaks at 8 PM. Consider pre-cooling at 6 PM for better rates.
+                    Your AC usage peaks at 8 PM. Consider pre-cooling at 6 PM
+                    for better rates.
                   </p>
-                  <Badge className="bg-primary-500 text-white">Save ₹400/month</Badge>
-                  <Button size="sm" className="mt-3 bg-primary-500 hover:bg-primary-600 text-white">
+                  <Badge className="bg-primary-500 text-white">
+                    Save ₹400/month
+                  </Badge>
+                  <Button
+                    size="sm"
+                    className="mt-3 bg-primary-500 hover:bg-primary-600 text-white"
+                  >
                     Set Schedule
                   </Button>
                 </div>
@@ -800,12 +812,20 @@ const Overview = () => {
                   <Leaf className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-2">Solar Opportunity</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Solar Opportunity
+                  </h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    Based on your usage, solar panels could cover 70% of your consumption.
+                    Based on your usage, solar panels could cover 70% of your
+                    consumption.
                   </p>
-                  <Badge className="bg-green-500 text-white">ROI in 3.2 years</Badge>
-                  <Button size="sm" className="mt-3 bg-green-500 hover:bg-green-600 text-white">
+                  <Badge className="bg-green-500 text-white">
+                    ROI in 3.2 years
+                  </Badge>
+                  <Button
+                    size="sm"
+                    className="mt-3 bg-green-500 hover:bg-green-600 text-white"
+                  >
                     Get Quote
                   </Button>
                 </div>
@@ -818,12 +838,20 @@ const Overview = () => {
                   <Target className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-2">Smart Appliances</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Smart Appliances
+                  </h4>
                   <p className="text-sm text-gray-600 mb-4">
-                    Upgrade to 5-star rated appliances to reduce consumption by 25%.
+                    Upgrade to 5-star rated appliances to reduce consumption by
+                    25%.
                   </p>
-                  <Badge className="bg-blue-500 text-white">Long-term savings</Badge>
-                  <Button size="sm" className="mt-3 bg-blue-500 hover:bg-blue-600 text-white">
+                  <Badge className="bg-blue-500 text-white">
+                    Long-term savings
+                  </Badge>
+                  <Button
+                    size="sm"
+                    className="mt-3 bg-blue-500 hover:bg-blue-600 text-white"
+                  >
                     View Options
                   </Button>
                 </div>

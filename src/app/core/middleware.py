@@ -17,7 +17,8 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app.core.config import settings
 from app.core.security import SecurityHeaders
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
 
 
 def _get_header(scope: Scope, name: str) -> Optional[str]:
@@ -265,13 +266,6 @@ class ProfessionalLoggingMiddleware:
 
 
 class SecurityHeadersMiddleware:
-    """
-    ASGI middleware to add security headers to all responses.
-    - Adds base headers from SecurityHeaders.get_headers()
-    - Adds HSTS for HTTPS
-    - Adds CSP (relaxed for HTML docs; strict for JSON/others)
-    """
-
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
@@ -283,11 +277,15 @@ class SecurityHeadersMiddleware:
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(raw=message.setdefault("headers", []))
-                # Base headers
-                for k, v in SecurityHeaders.get_headers().items():
-                    headers[k] = v
 
-                # HSTS for HTTPS
+                # ✅ preserve CORS headers set earlier
+                # (they will already exist here if CORSMiddleware added them)
+
+                # Add your own security headers without nuking others
+                for k, v in SecurityHeaders.get_headers().items():
+                    if k not in headers:  # don't overwrite
+                        headers[k] = v
+
                 if scope.get("scheme") == "https":
                     headers.setdefault(
                         "Strict-Transport-Security",
@@ -295,22 +293,21 @@ class SecurityHeadersMiddleware:
                     )
 
                 content_type = headers.get("content-type", "")
-                # Docs pages need relaxed CSP to allow inline scripts/styles
                 if content_type and "text/html" in content_type.lower():
-                    csp = (
+                    headers.setdefault(
+                        "Content-Security-Policy",
                         "default-src 'self'; "
                         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
                         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
                         "img-src 'self' data: https://fastapi.tiangolo.com; "
-                        "object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+                        "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
                     )
-                    headers["Content-Security-Policy"] = csp
                 else:
-                    headers["Content-Security-Policy"] = (
-                        "default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+                    headers.setdefault(
+                        "Content-Security-Policy",
+                        "default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
                     )
 
-                # Ensure we always propagate request id if set by an upstream middleware
                 state = scope.get("state")
                 if state and hasattr(state, "request_id"):
                     headers["X-Request-ID"] = getattr(state, "request_id")
@@ -379,17 +376,13 @@ def register_middlewares(app: FastAPI) -> None:
     """
     Register all application middlewares.
 
-    Starlette/FastAPI middleware order:
-      - They run in the order they are added on the way in,
-        and in reverse on the way out (response).
-
-    Strategy:
-      1) Logging OUTERMOST to observe every request/response (including short-circuited ones).
-      2) GZip to compress the final response.
-      3) Security headers so they apply to all responses.
-      4) Trusted host checks.
-      5) CORS handling.
-      6) Request size limit nearest to the app to reject early while still letting outer layers add headers.
+    Correct Middleware Order Strategy:
+      1. Logging/Error Handling (as outermost to catch everything).
+      2. CORS (must run early to handle preflight OPTIONS requests and add headers).
+      3. Trusted Host (can run after CORS).
+      4. Security Headers.
+      5. GZip compression.
+      6. Request Size Limit (as innermost to reject large bodies before they are processed).
     """
     allowed_hosts = _get_allowed_hosts()
     cors_origins = _get_cors_origins()
@@ -412,19 +405,32 @@ def register_middlewares(app: FastAPI) -> None:
         trust_forwarded_headers=bool(
             getattr(settings, "TRUST_FORWARDER_HEADERS", False)
         )
-        or bool(
-            getattr(settings, "TRUST_FORWARDED_HEADERS", False)
-        ),  # support both spellings
+        or bool(getattr(settings, "TRUST_FORWARDED_HEADERS", False)),
         trusted_proxies=trusted_proxies,
     )
 
-    # 2) GZip
-    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    # 2) CORS
+    allow_credentials = True
+    if any(o == "*" for o in cors_origins):
+        allow_credentials = False
+        logger.warning(
+            "CORS: '*' detected; forcing allow_credentials=False for compliance"
+        )
 
-    # 3) Security headers
-    app.add_middleware(SecurityHeadersMiddleware)
+    cors_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
+    cors_headers = ["*"]
+    expose_headers = ["X-Request-ID", "Retry-After", "Content-Disposition"]
 
-    # 4) Trusted Host
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=allow_credentials,
+        allow_methods=cors_methods,
+        allow_headers=cors_headers,
+        expose_headers=expose_headers,
+    )
+
+    # 3) Trusted Host
     if allowed_hosts and "*" not in allowed_hosts:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
     else:
@@ -432,29 +438,17 @@ def register_middlewares(app: FastAPI) -> None:
             "TrustedHostMiddleware disabled: ALLOWED_HOSTS contains '*' or is not configured"
         )
 
-    # 5) CORS
-    allow_credentials = True
-    if any(o == "*" for o in cors_origins):
-        # Starlette disallows allow_credentials=True with wildcard origins
-        allow_credentials = False
-        logger.warning(
-            "CORS: '*' detected; forcing allow_credentials=False for compliance"
-        )
+    # 4) Security headers
+    app.add_middleware(SecurityHeadersMiddleware)
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors_origins,
-        allow_credentials=allow_credentials,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"],
-        allow_headers=["*"],
-        expose_headers=["X-Request-ID", "Retry-After", "Content-Disposition"],
-    )
+    # 5) GZip
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     # 6) Request size limit
     max_request_size = int(getattr(settings, "MAX_REQUEST_SIZE", 10 * 1024 * 1024))
     app.add_middleware(RequestSizeLimitMiddleware, max_size=max_request_size)
 
-    logger.info("All middlewares registered successfully")
+    logger.info("All middlewares registered successfully with corrected order")
 
 
 def _get_allowed_hosts() -> List[str]:
@@ -475,15 +469,36 @@ def _get_allowed_hosts() -> List[str]:
 
 
 def _get_cors_origins() -> List[str]:
-    """Validate and return CORS origins configuration."""
-    if not getattr(settings, "CORS_ORIGINS", None):
+    """Validate, normalize, and expand CORS origins configuration."""
+    raw = getattr(settings, "CORS_ORIGINS", None)
+    if not raw:
         logger.warning("CORS_ORIGINS not configured, using restrictive default")
-        return ["http://localhost:3000", "http://localhost:8000"]
+        return [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ]
 
-    origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
-    if not origins:
-        logger.warning("CORS_ORIGINS is empty after parsing, using restrictive default")
-        return ["http://localhost:3000", "http://localhost:8000"]
+    # 1) Split and normalize
+    origins = [o.strip().rstrip("/") for o in raw.split(",") if o.strip()]
+    logger.info(f"CORS_ORIGINS configured: {origins}")
 
-    logger.info(f"Configured CORS origins: {origins}")
-    return origins
+    # 2) Expand localhost ↔ 127.0.0.1
+    expanded = set(origins)
+    for origin in list(origins):
+        if "localhost" in origin:
+            expanded.add(origin.replace("localhost", "127.0.0.1"))
+        if "127.0.0.1" in origin:
+            expanded.add(origin.replace("127.0.0.1", "localhost"))
+
+    # 3) Warn on '*' + credentials
+    if "*" in expanded:
+        logger.warning(
+            "CORS: '*' detected. Remember: Access-Control-Allow-Origin will be suppressed "
+            "if allow_credentials=True. Consider using explicit origins instead."
+        )
+
+    final = sorted(expanded)
+    logger.info(f"CORS_ORIGINS final (after expansion): {final}")
+    return final

@@ -1,5 +1,4 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import Overview from "./pages/Overview";
@@ -9,12 +8,15 @@ import Insights from "./pages/Insights";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { Toaster } from "sonner";
-import AuthPage from "./components/AuthPage";
+import { Provider } from "react-redux";
 
-const queryClient = new QueryClient();
+import AuthPage from "./components/auth/AuthPage";
+import ResetPasswordPage from "./components/auth/ResetPasswordPage";
+import VerifyEmailPage from "./components/auth/VerifyEmailPage";
+import { appStore } from "./redux/store";
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <Provider store={appStore}>
     <TooltipProvider>
       <Toaster />
       <BrowserRouter>
@@ -27,12 +29,13 @@ const App = () => (
             <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="auth" element={<AuthPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </Provider>
 );
 
 export default App;

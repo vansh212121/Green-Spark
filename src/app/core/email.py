@@ -37,7 +37,7 @@ def send_password_reset_email_sync(email_to: str, token: str):
     """Builds and sends the password reset email synchronously."""
 
     # Use the configurable frontend URL
-    reset_url = f"http://localhost:8000/reset-password?token={token}"
+    reset_url = f"http://localhost:5173/reset-password?token={token}"
 
     subject = "Reset Your GreenSpark Password"
 
@@ -81,7 +81,7 @@ def send_verification_email_sync(email_to: str, token: str):
     """Builds and sends the verification email synchronously."""
 
     # Use the configurable frontend URL
-    verification_url = f"http://localhost:3000/verify-email?token={token}"
+    verification_url = f"http://localhost:5173/verify-email?token={token}"
 
     subject = "Verify Your Email for GreenSpark"
 
@@ -164,7 +164,7 @@ def send_email_change_confirmation_sync(email_to: str, token: str):
     """Builds and sends the email change confirmation email synchronously."""
 
     # Use the configurable frontend URL
-    confirmation_url = f"http://localhost:3000/confirm-email-change?token={token}"
+    confirmation_url = f"http://localhost:5173/confirm-email-change?token={token}"
 
     subject = "Confirm Your New Email Address for GreenSpark"
 

@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     # --- API Configuration ---
     API_V1_STR: str = "/api/v1"
     ALLOWED_HOSTS: str = "localhost,127.0.0.1"
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:8000"
+    CORS_ORIGINS: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000"
+    )
 
     # --- Core Infrastructure Credentials ---
     POSTGRES_USER: str
@@ -23,12 +25,12 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
     POSTGRES_SERVER: str = "postgres"
     POSTGRES_PORT: int = 5432
-    
+
     API_KEY: str
-    
+
     REDIS_URL: str
 
-    FRONTEND_URL: str = "http://localhost:3000"
+    FRONTEND_URL: str = "http://localhost:5173"
 
     @computed_field
     @property
@@ -74,7 +76,6 @@ class Settings(BaseSettings):
     S3_ACCESS_KEY_ID: str
     S3_SECRET_ACCESS_KEY: str
     S3_BUCKET_NAME: str = "greenspark-bills"
-
 
     # --- Model Configuration ---
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
