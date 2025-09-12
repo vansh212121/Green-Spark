@@ -285,7 +285,7 @@ import {
   Clock,
   Target,
 } from "lucide-react";
-import { BillSelector } from "@/components/BillSelector";
+import { BillSelector } from "@/components/bills/BillSelector";
 
 // Sample data
 const monthlyData = [

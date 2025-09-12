@@ -4,6 +4,7 @@ from typing import Dict, List
 from fastapi import APIRouter, Depends, status, Query
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.app.core.config import settings
 from src.app.db.session import get_session
 from src.app.models.user_model import User
 from src.app.services.appliance_service import appliance_service
@@ -21,7 +22,6 @@ from src.app.utils.deps import (
     get_pagination_params,
     PaginationParams,
     require_user,
-    require_admin,
     rate_limit_api,
 )
 
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["Appliance"],
-    prefix="/appliances",
+    prefix=f"{settings.API_V1_STR}/appliances",
 )
 
 

@@ -1,11 +1,10 @@
-# GET /insights/status/{bill_id}
-# GET /insights/report/{bill_id}
 import logging
 import uuid
 
 from fastapi import APIRouter, Depends, status
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from src.app.core.config import settings
 from src.app.db.session import get_session
 from src.app.models.user_model import User
 from src.app.services.insights_service import insight_service
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["Insights"],
-    prefix="/insights",
+    prefix=f"{settings.API_V1_STR}/insights",
 )
 
 

@@ -7,16 +7,6 @@ const BASE_URL = "http://127.0.0.1:8000/api/v1";
 
 export const authApi = createApi({
   reducerPath: "authApi",
-  // baseQuery: fetchBaseQuery({
-  //   baseUrl: BASE_URL,
-  //   prepareHeaders: (headers, { getState }) => {
-  //     const token = getState().auth.accessToken;
-  //     if (token) {
-  //       headers.set('authorization', `Bearer ${token}`);
-  //     }
-  //     return headers;
-  //   },
-  // }),
   baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     login: builder.mutation({
@@ -30,28 +20,34 @@ export const authApi = createApi({
         try {
           const { data: tokenData } = await queryFulfilled;
 
-          const userResponse = await dispatch(userApi.endpoints.getMe.initiate(tokenData.access_token));
+          // 1️⃣ Immediately save tokens to Redux & localStorage
+          dispatch(
+            userLoggedIn({
+              user: null, // temporarily null, we’ll fill it next
+              access_token: tokenData.access_token,
+              refresh_token: tokenData.refresh_token,
+            })
+          );
 
-          if (userResponse.isError) {
+          // 2️⃣ Now fetch user profile using the stored accessToken
+          const userResponse = await dispatch(userApi.endpoints.getMe.initiate()).unwrap();
 
-            throw new Error("Login succeeded, but failed to fetch user profile.");
-          }
-
-
-          const fullCredentials = {
-            user: userResponse.data,
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token,
-          };
-
-          dispatch(userLoggedIn(fullCredentials));
-
+          // 3️⃣ Update user in Redux
+          dispatch(
+            userLoggedIn({
+              user: userResponse,
+              access_token: tokenData.access_token,
+              refresh_token: tokenData.refresh_token,
+            })
+          );
         } catch (err) {
           console.error("Login sequence failed:", err);
-
           throw err;
         }
       },
+
+
+
     }),
 
     signup: builder.mutation({
@@ -138,7 +134,7 @@ export const authApi = createApi({
       }),
     }),
 
-    // =========Email Change=========
+    // =========Email Verification=========
     requestVerificationEmail: builder.mutation({
       query: (body) => ({ // Expects { email: "user@example.com" }
         url: "/auth/email/request-verification-email",
@@ -153,6 +149,38 @@ export const authApi = createApi({
         params: { token },
       }),
     }),
+
+    // =========Email Change=========
+    requestEmailChange: builder.mutation({
+      query: (body) => ({ // Expects { new_email: "..." }
+        url: '/auth/email',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    // Mutation to confirm the email change using a token from the link.
+    confirmEmailChange: builder.mutation({
+      query: (token) => ({ // Expects the token string directly
+        url: '/auth/email/confirm-change',
+        method: 'POST',
+        params: { token }, // Sends token as a URL query parameter
+      }),
+      // This is a critical step for security.
+      // On successful confirmation, we MUST log the user out on the client.
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          // The backend has invalidated the session. We must clear the frontend state.
+          dispatch(userLoggedOut());
+        } catch (err) {
+          // Even if the confirmation fails, it's safer to log out.
+          // This handles cases where the token was valid but something else went wrong.
+          dispatch(userLoggedOut());
+        }
+      },
+    }),
+
   }),
 });
 
@@ -165,5 +193,7 @@ export const {
   useConfirmPasswordResetMutation,
   useRequestVerificationEmailMutation,
   useVerifyEmailMutation,
+  useRequestEmailChangeMutation,
+  useConfirmEmailChangeMutation,
 } = authApi;
 

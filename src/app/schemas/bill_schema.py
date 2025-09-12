@@ -12,8 +12,8 @@ class BillBase(BaseModel):
 
     billing_period_start: date = Field(..., description="Starting Bill period")
     billing_period_end: date = Field(..., description="Ending Bill period")
-    kwh_total: float = Field(..., gt=0, description="Total kWh consumed")
-    cost_total: float = Field(..., ge=0, description="Total cost in INR")
+    kwh_total: float = Field(..., description="Total kWh consumed")
+    cost_total: float = Field(..., description="Total cost in INR")
     provider: str = Field(..., min_length=1, max_length=100)
 
     @model_validator(mode="after")
@@ -31,25 +31,7 @@ class BillBase(BaseModel):
         return self
 
 
-# class BillUploadRequest(BaseModel):
-#     """Schema for requesting a file upload URL."""
 
-#     filename: str = Field(
-#         ..., description="The name of the file being uploaded, e.g., 'july_bill.pdf'."
-#     )
-#     source_type: str = Field(
-#         ..., description="The MIME type of the file, e.g., 'application/pdf or manual'."
-#     )
-
-
-# class BillConfirmRequest(BaseModel):
-#     """Schema for confirming a file upload is complete."""
-
-
-#     file_uri: str = Field(
-#         ...,
-#         description="The file URI that was returned from the initial /upload endpoint.",
-#     )
 class BillUploadRequest(BaseModel):
     """Schema for Step 1: Requesting a file upload URL."""
 

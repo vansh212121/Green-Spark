@@ -22,6 +22,7 @@ from src.app.db.session import get_session
 from src.app.utils.deps import (
     get_current_verified_user,
     rate_limit_auth,
+    rate_limit_api,
     reusable_oauth2,
 )
 from src.app.services.user_service import user_service
@@ -158,7 +159,7 @@ async def logout_user(
     response_model=TokenResponse,
     summary="Refresh access token",
     description="Get new access token using refresh token",
-    dependencies=[Depends(rate_limit_auth)],
+    dependencies=[Depends(rate_limit_api)],
 )
 async def rotate_tokens(
     *, token_data: TokenRefresh, db: AsyncSession = Depends(get_session)
@@ -307,7 +308,7 @@ async def request_new_verification_email(
 )
 async def verify_account(
     *,
-    token: str ,  # It should take the token as a query parameter
+    token: str,  # It should take the token as a query parameter
     db: AsyncSession = Depends(get_session),
 ):
     await auth_service.verify_email(token=token, db=db)

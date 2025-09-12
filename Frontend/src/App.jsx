@@ -14,6 +14,8 @@ import AuthPage from "./components/auth/AuthPage";
 import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import VerifyEmailPage from "./components/auth/VerifyEmailPage";
 import { appStore } from "./redux/store";
+import ConfirmEmailChangePage from "./components/auth/ConfirmEmailChangePage";
+import TestPage from "./pages/test";
 
 const App = () => (
   <Provider store={appStore}>
@@ -27,10 +29,12 @@ const App = () => (
             <Route path="appliances" element={<Appliances />} />
             <Route path="insights" element={<Insights />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="test" element={<TestPage />} />
           </Route>
           <Route path="auth" element={<AuthPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route path="/confirm-email-change" element={<ConfirmEmailChangePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

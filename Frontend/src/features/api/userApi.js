@@ -9,26 +9,11 @@ export const userApi = createApi({
   // Define a tag for user data to enable automatic refetching
   reducerPath: "userApi",
   tagTypes: ['User'],
-  // baseQuery: fetchBaseQuery({
-  //   baseUrl: BASE_URL,
-  //   prepareHeaders: (headers, { getState }) => {
-  //     // Attach the JWT access token to every request
-  //     const token = getState().auth.accessToken;
-  //     if (token) {
-  //       headers.set('authorization', `Bearer ${token}`);
-  //     }
-  //     return headers;
-  //   },
-  // }),
   baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     // 1. GET CURRENT USER PROFILE
     getMe: builder.query({
-      // THE FIX: Allow an optional token argument to be passed in.
-      query: (accessToken) => ({
-        url: "/users/me",
-        headers: accessToken ? { 'authorization': `Bearer ${accessToken}` } : {},
-      }),
+      query: () => '/users/me',
       providesTags: ['User'],
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
         try {
@@ -39,25 +24,28 @@ export const userApi = createApi({
         }
       }
     }),
-    // 2. UPDATE CURRENT USER PROFILE
+
+
+    // PATCH /users/me
     updateMyProfile: builder.mutation({
-      query: (updateData) => ({ // Matches UserUpdate schema
+      query: (updateData) => ({ // Matches the UserUpdate schema
         url: "/users/me",
         method: "PATCH",
-        body: updateData // e.g., { first_name: "Jane" }
+        body: updateData
       }),
-      // On success, invalidate the 'User' tag to force a refetch of getMe
-      invalidatesTags: ['User']
+      invalidatesTags: ['User'] // On success, this invalidates the 'User' tag, forcing getMe to refetch
     }),
-    // 3. CHANGE USER'S PASSWORD
+
+    // POST /users/change-password
     changeMyPassword: builder.mutation({
-      query: (passwordData) => ({ // Matches UserPasswordChange schema
+      query: (passwordData) => ({ // Matches the UserPasswordChange schema
         url: "/users/change-password",
         method: "POST",
-        body: passwordData // { current_password, new_password }
+        body: passwordData
       })
     }),
-    // 4. DEACTIVATE USER'S ACCOUNT
+
+    // DELETE /users/me
     deactivateMyAccount: builder.mutation({
       query: () => ({
         url: "/users/me",
@@ -66,10 +54,10 @@ export const userApi = createApi({
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
         try {
           await queryFulfilled;
-          // After a successful deactivation, log the user out from the client
+          // Always log out on the client after a successful deactivation
           dispatch(userLoggedOut());
         } catch (err) {
-          console.error("Deactivation failed on the backend, but forcing logout.", err)
+          console.error("Deactivation failed on server, but forcing logout.", err);
           dispatch(userLoggedOut());
         }
       }
@@ -77,7 +65,6 @@ export const userApi = createApi({
   }),
 });
 
-// Export the new hooks to be used in your components
 export const {
   useGetMeQuery,
   useUpdateMyProfileMutation,

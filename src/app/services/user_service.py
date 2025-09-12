@@ -76,7 +76,7 @@ class UserService:
             detail=f"You are not authorized to {action} this user.",
         )
 
-    async def get_user_for_auth(
+    async def get_user_for_auth(    
         self, db: AsyncSession, *, user_id: uuid.UUID
     ) -> Optional[User]:
         """

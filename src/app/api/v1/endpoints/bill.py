@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["Bills"],
-    prefix="/bills",
+    prefix=f"{settings.API_V1_STR}/bills",
 )
 
 
@@ -159,7 +159,7 @@ async def confirm_bill_upload(
 
 
 @router.post(
-    "/bills/{bill_id}/estimate",
+    "/{bill_id}/estimate",
     status_code=status.HTTP_202_ACCEPTED,
     response_model=Dict[str, str],
     summary="Trigger the bill estimation task",

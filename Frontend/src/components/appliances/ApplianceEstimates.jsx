@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Zap, TrendingUp, Calculator } from "lucide-react";
+import { useGetEstimatesForBillQuery } from "@/features/api/applianceApi";
 
 const applianceData = [
   { appliance: "AC", consumption: 189, cost: 1032, efficiency: 85 },
@@ -43,7 +44,25 @@ const efficiencyData = [
 
 const COLORS = ["#22c55e", "#f59e0b", "#ef4444"];
 
-export const ApplianceEstimates = ({ selectedBill }) => {
+export const ApplianceEstimates = ({ selectedBill, appliances }) => {
+  const { data, isLoading, isError } =
+    useGetEstimatesForBillQuery(selectedBill);
+
+  if (isLoading)
+    return <p className="text-gray-500 p-6">Loading appliance estimates...</p>;
+  if (isError || !data?.length)
+    return (
+      <p className="text-gray-500 p-6">No estimates available for this bill.</p>
+    );
+
+  const estimates = data;
+
+  // Helper to get appliance name from the list
+  const getApplianceName = (user_appliance_id) => {
+    const appliance = appliances.find((a) => a.id === user_appliance_id);
+    return appliance ? appliance.custom_name : "Unknown Appliance";
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -181,11 +200,14 @@ export const ApplianceEstimates = ({ selectedBill }) => {
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-xl font-semibold text-gray-900">
-            Detailed Estimates
+            Appliance Estimates
           </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Estimated energy consumption and cost for each appliance
+          </p>
         </div>
         <div className="divide-y divide-gray-200">
-          {applianceData.map((appliance, index) => (
+          {estimates.map((applianceEstimate, index) => (
             <div key={index} className="p-6 hover:bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
@@ -194,25 +216,23 @@ export const ApplianceEstimates = ({ selectedBill }) => {
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900">
-                      {appliance.appliance}
+                      {getApplianceName(applianceEstimate.user_appliance_id)}
                     </h4>
-                    <p className="text-sm text-gray-500">
-                      {appliance.efficiency}% efficiency
-                    </p>
+                    <p className="text-sm text-gray-500">Estimated usage</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-8 text-right">
                   <div>
                     <p className="font-mono font-semibold text-gray-900">
-                      {appliance.consumption} kWh
+                      {applianceEstimate.estimated_kwh.toFixed(2)} kWh
                     </p>
-                    <p className="text-sm text-gray-500">Monthly usage</p>
+                    <p className="text-sm text-gray-500">Estimated kWh</p>
                   </div>
                   <div>
                     <p className="font-mono font-semibold text-gray-900">
-                      ₹{appliance.cost}
+                      ₹{applianceEstimate.estimated_cost.toFixed(2)}
                     </p>
-                    <p className="text-sm text-gray-500">Monthly cost</p>
+                    <p className="text-sm text-gray-500">Estimated Cost</p>
                   </div>
                 </div>
               </div>
@@ -223,4 +243,3 @@ export const ApplianceEstimates = ({ selectedBill }) => {
     </div>
   );
 };
-

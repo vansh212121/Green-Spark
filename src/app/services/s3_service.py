@@ -39,6 +39,15 @@ class S3Service:
                 },
                 ExpiresIn=expiration,
             )
+            if settings.S3_PUBLIC_URL:
+                public_url = response.replace(
+                    settings.S3_ENDPOINT_URL, settings.S3_PUBLIC_URL
+                )
+                logger.info(f"Generated public-facing presigned URL for browser.")
+                return public_url
+            logger.warning(
+                "S3_PUBLIC_URL not set; returning response URL. This may not work from a browser."
+            )
             return response
         except ClientError as e:
             logger.error(
@@ -74,17 +83,20 @@ class S3Service:
         """Downloads a file from S3/MinIO to a temporary local path."""
         # Create a temporary file
         temp_file = tempfile.NamedTemporaryFile(delete=False)
-        
+
         try:
             # Recreate the key from the full URI
             key = object_key.replace(f"s3://{self.bucket_name}/", "")
-            
+
             self.s3_client.download_file(self.bucket_name, key, temp_file.name)
             logger.info(f"Successfully downloaded {object_key} to {temp_file.name}")
             return temp_file.name
         except ClientError as e:
             logger.error(f"Failed to download file {object_key}: {e}", exc_info=True)
-            raise ServiceUnavailable(service="File Storage", detail="Could not download file for processing.")
+            raise ServiceUnavailable(
+                service="File Storage", detail="Could not download file for processing."
+            )
+
 
 # Singleton instance for dependency injection
 s3_service = S3Service()

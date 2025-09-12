@@ -73,6 +73,7 @@ class Settings(BaseSettings):
     MINIO_ROOT_USER: str
     MINIO_ROOT_PASSWORD: str
     S3_ENDPOINT_URL: str = "http://minio:9000"
+    S3_PUBLIC_URL: str = "http://localhost:9000"
     S3_ACCESS_KEY_ID: str
     S3_SECRET_ACCESS_KEY: str
     S3_BUCKET_NAME: str = "greenspark-bills"

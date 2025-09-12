@@ -16,6 +16,11 @@ class UserApplianceBase(BaseModel):
         max_length=100,
         description="User-defined name for the appliance",
     )
+    count : int = Field(
+        ...,
+        ge=0,
+        description="Number of appliances user owns"
+    )
     custom_wattage: int = Field(
         ...,
         gt=0,
@@ -62,7 +67,7 @@ class UserApplianceBase(BaseModel):
         description="Add some additional notes for the applaince",
     )
 
-    @field_validator("custom_name", "brand", "model", "notes")
+    @field_validator("custom_name", "brand", "model")
     def strip_and_validate_strings(cls, v: str) -> str:
         v = v.strip()
         if not v:
@@ -133,6 +138,11 @@ class UserApplianceUpdate(BaseModel):
         min_length=1,
         max_length=100,
         description="User-defined name for the appliance",
+    )
+    count : Optional[int] = Field(
+        None,
+        ge=0,
+        description="Number of appliances user owns"
     )
     custom_wattage: Optional[int] = Field(
         None,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,23 +21,185 @@ import {
   UserX,
   Trash2,
   Save,
+  Loader2,
 } from "lucide-react";
 
+import {
+  useChangeMyPasswordMutation,
+  useDeactivateMyAccountMutation,
+  useGetMeQuery,
+  useUpdateMyProfileMutation,
+} from "@/features/api/userApi";
+import { toast } from "sonner";
+import { useRequestEmailChangeMutation } from "@/features/api/authApi";
+
+// Helper function to parse complex API errors
+const getApiErrorMessage = (err, defaultMessage) => {
+  // Check for FastAPI's 422 validation error format
+  if (err.data?.detail && Array.isArray(err.data.detail)) {
+    const firstError = err.data.detail[0];
+    const fieldName = firstError.loc.slice(-1)[0];
+    return `${fieldName}: ${firstError.msg}`;
+  }
+  // Check for our custom error format (e.g., 401, 400)
+  if (err.data?.error?.message) {
+    return err.data.error.message;
+  }
+  // Fallback for any other error
+  return defaultMessage;
+};
+
 const Settings = () => {
+  const { data: currentUser, isLoading: isLoadingUser } = useGetMeQuery();
+
+  // --- State Management ---
+  const [profileData, setProfileData] = useState({
+    first_name: "",
+    last_name: "",
+    username: "",
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    current_password: "",
+    new_password: "",
+    confirm_password: "",
+  });
+
+  const [emailData, setEmailData] = useState({
+    new_email: "",
+    confirm_email: "",
+  });
+
+  const [updateMyProfile, { isLoading: isUpdatingProfile }] =
+    useUpdateMyProfileMutation();
+  const [changeMyPassword, { isLoading: isChangingPassword }] =
+    useChangeMyPasswordMutation();
+  const [deactivateMyAccount, { isLoading: isDeactivating }] =
+    useDeactivateMyAccountMutation();
+  const [requestEmailChange, { isLoading: isChangingEmail }] =
+    useRequestEmailChangeMutation();
+
+  // Effect to populate the form once the user data is fetched
+  useEffect(() => {
+    if (currentUser) {
+      setProfileData({
+        first_name: currentUser.first_name || "",
+        last_name: currentUser.last_name || "",
+        username: currentUser.username || "",
+      });
+    }
+  }, [currentUser]);
+
+  // --- Handlers ---
+  const handleProfileInputChange = (e) => {
+    setProfileData({ ...profileData, [e.target.id]: e.target.value });
+  };
+  const handlePasswordInputChange = (e) =>
+    setPasswordData({ ...passwordData, [e.target.id]: e.target.value });
+  const handleEmailInputChange = (e) =>
+    setEmailData({ ...emailData, [e.target.id]: e.target.value });
+
+  const handleDeactivateAccount = async () => {
+    try {
+      await deactivateMyAccount().unwrap();
+      toast.success("Account deactivated successfully.");
+      setShowDeactivateModal(false);
+      // The mutation already logs the user out via onQueryStarted
+    } catch (err) {
+      console.error("Deactivation failed:", err);
+      toast.error("Failed to deactivate account. Logging out locally.");
+      dispatch(userLoggedOut());
+      setShowDeactivateModal(false);
+    }
+  };
+
+  // Profile Update
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    const changedData = Object.keys(profileData).reduce((acc, key) => {
+      if (profileData[key] !== currentUser[key]) acc[key] = profileData[key];
+      return acc;
+    }, {});
+
+    if (Object.keys(changedData).length === 0) {
+      toast.info("No profile changes to save.");
+      return;
+    }
+
+    toast.promise(updateMyProfile(changedData).unwrap(), {
+      loading: "Updating your profile...",
+      success: "Profile updated successfully!",
+      error: (err) => getApiErrorMessage(err, "Failed to update profile."),
+    });
+  };
+  // Password Update
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (passwordData.new_password !== passwordData.confirm_password) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+
+    const promise = changeMyPassword({
+      current_password: passwordData.current_password,
+      new_password: passwordData.new_password,
+    }).unwrap();
+
+    toast.promise(promise, {
+      loading: "Changing your password...",
+      success: () => {
+        setPasswordData({
+          current_password: "",
+          new_password: "",
+          confirm_password: "",
+        });
+        return "Password changed successfully!";
+      },
+      error: (err) => getApiErrorMessage(err, "Failed to change password."),
+    });
+  };
+  // Email Change Handler
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    if (emailData.new_email !== emailData.confirm_email) {
+      toast.error("New emails do not match.");
+      return;
+    }
+
+    const promise = requestEmailChange({
+      new_email: emailData.new_email,
+    }).unwrap();
+
+    toast.promise(promise, {
+      loading: "Sending verification link...",
+      success: (data) => {
+        setEmailData({ new_email: "", confirm_email: "" }); // Reset form on success
+        return (
+          data.message || "Verification link sent to your new email address."
+        );
+      },
+      error: (err) =>
+        getApiErrorMessage(err, "Failed to request email change."),
+    });
+  };
+
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const handleDeactivateAccount = () => {
-    // Handle deactivate account logic here
-    console.log("Account deactivated");
-    setShowDeactivateModal(false);
-  };
 
   const handleDeleteAccount = () => {
     // Handle delete account logic here
     console.log("Account deleted");
     setShowDeleteModal(false);
   };
+
+  // --- Loading State ---
+  if (isLoadingUser) {
+    return (
+      <div className="p-8 flex justify-center items-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 animate-fade-in">
@@ -57,34 +219,65 @@ const Settings = () => {
               Profile Settings
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" defaultValue="John" />
+          <form onSubmit={handleProfileSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="first_name">First Name</Label>
+                <Input
+                  id="first_name"
+                  value={profileData.first_name}
+                  onChange={handleProfileInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last_name">Last Name</Label>
+                <Input
+                  id="last_name"
+                  value={profileData.last_name}
+                  onChange={handleProfileInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={profileData.username}
+                  onChange={handleProfileInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Input
+                  id="timezone"
+                  value={profileData.timezone}
+                  onChange={handleProfileInputChange}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" defaultValue="Doe" />
+            <div className="flex justify-end mt-6">
+              <Button
+                type="submit"
+                className="bg-primary-500 hover:bg-primary-600"
+                disabled={isUpdatingProfile}
+              >
+                {isUpdatingProfile ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Profile
+                  </>
+                )}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input id="username" defaultValue="johndoe123" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input id="location" defaultValue="Mumbai, Maharashtra" />
-            </div>
-          </div>
-          <div className="flex justify-end mt-6">
-            <Button className="bg-primary-500 hover:bg-primary-600">
-              <Save className="w-4 h-4 mr-2" />
-              Save Profile
-            </Button>
-          </div>
+          </form>
         </Card>
 
         {/* Change Email */}
-        <Card className="p-6">
+        {/* <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <Mail className="w-5 h-5 text-primary-500" />
             <h3 className="text-xl font-semibold text-gray-900">
@@ -96,6 +289,7 @@ const Settings = () => {
               <Label htmlFor="currentEmail">Current Email</Label>
               <Input
                 id="currentEmail"
+                value={profileData.email}
                 defaultValue="john@example.com"
                 disabled
               />
@@ -118,6 +312,67 @@ const Settings = () => {
               Update Email
             </Button>
           </div>
+        </Card> */}
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Mail className="w-5 h-5 text-primary-500" />
+            <h3 className="text-xl font-semibold text-gray-900">
+              Change Email
+            </h3>
+          </div>
+          <form onSubmit={handleEmailSubmit}>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentEmail">Current Email</Label>
+                <Input
+                  id="currentEmail"
+                  value={currentUser?.email || ""}
+                  disabled
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new_email">New Email</Label>
+                <Input
+                  id="new_email"
+                  type="email"
+                  placeholder="Enter new email address"
+                  value={emailData.new_email}
+                  onChange={handleEmailInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm_email">Confirm New Email</Label>
+                <Input
+                  id="confirm_email"
+                  type="email"
+                  placeholder="Confirm new email address"
+                  value={emailData.confirm_email}
+                  onChange={handleEmailInputChange}
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button
+                type="submit"
+                className="bg-primary-500 hover:bg-primary-600"
+                disabled={isChangingEmail}
+              >
+                {isChangingEmail ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending Link...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Update Email
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
         </Card>
 
         {/* Change Password */}
@@ -128,38 +383,62 @@ const Settings = () => {
               Change Password
             </h3>
           </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                placeholder="Enter current password"
-              />
+          <form onSubmit={handlePasswordSubmit}>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="current_password">Current Password</Label>
+                <Input
+                  id="current_password"
+                  type="password"
+                  placeholder="Enter current password"
+                  value={passwordData.current_password}
+                  onChange={handlePasswordInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new_password">New Password</Label>
+                <Input
+                  id="new_password"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={passwordData.new_password}
+                  onChange={handlePasswordInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm_password">Confirm New Password</Label>
+                <Input
+                  id="confirm_password"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={passwordData.confirm_password}
+                  onChange={handlePasswordInputChange}
+                  required
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                placeholder="Enter new password"
-              />
+            <div className="flex justify-end mt-6">
+              <Button
+                type="submit"
+                className="bg-primary-500 hover:bg-primary-600"
+                disabled={isChangingPassword}
+              >
+                {isChangingPassword ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Changing...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Change Password
+                  </>
+                )}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm new password"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end mt-6">
-            <Button className="bg-primary-500 hover:bg-primary-600">
-              <Save className="w-4 h-4 mr-2" />
-              Change Password
-            </Button>
-          </div>
+          </form>
         </Card>
 
         {/* Help & Support */}
@@ -248,8 +527,9 @@ const Settings = () => {
             <AlertDialogAction
               className="bg-orange-600 hover:bg-orange-700"
               onClick={handleDeactivateAccount}
+              disabled={isDeactivating}
             >
-              Deactivate Account
+              {isDeactivating ? "Deactivating..." : "Deactivate Account"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

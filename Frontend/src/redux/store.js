@@ -2,6 +2,8 @@ import { configureStore } from "@reduxjs/toolkit";
 import rootReducer from "./rootReducer";
 import { authApi } from "@/features/api/authApi";
 import { userApi } from "@/features/api/userApi";
+import { billApi } from "@/features/api/billApi";
+import { applianceApi } from "@/features/api/applianceApi";
 
 
 
@@ -11,6 +13,8 @@ export const appStore = configureStore({
         defaultMiddleware().concat(
             authApi.middleware,
             userApi.middleware,
+            billApi.middleware,
+            applianceApi.middleware,
 
         ),
 });
