@@ -4,6 +4,7 @@ import { authApi } from "@/features/api/authApi";
 import { userApi } from "@/features/api/userApi";
 import { billApi } from "@/features/api/billApi";
 import { applianceApi } from "@/features/api/applianceApi";
+import { insightApi } from "@/features/api/InsightApi";
 
 
 
@@ -15,6 +16,7 @@ export const appStore = configureStore({
             userApi.middleware,
             billApi.middleware,
             applianceApi.middleware,
+            insightApi.middleware,
 
         ),
 });

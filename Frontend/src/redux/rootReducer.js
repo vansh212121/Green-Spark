@@ -4,6 +4,7 @@ import { authApi } from "@/features/api/authApi";
 import { userApi } from "@/features/api/userApi";
 import { billApi } from "@/features/api/billApi";
 import { applianceApi } from "@/features/api/applianceApi";
+import { insightApi } from "@/features/api/InsightApi";
 
 
 const rootReducer = combineReducers({
@@ -12,6 +13,7 @@ const rootReducer = combineReducers({
     [userApi.reducerPath]: userApi.reducer,
     [billApi.reducerPath]: billApi.reducer,
     [applianceApi.reducerPath]: applianceApi.reducer,
+    [insightApi.reducerPath]: insightApi.reducer,
 
     // Regular Slice Reducer
     auth: authReducer,
