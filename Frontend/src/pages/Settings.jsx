@@ -245,14 +245,6 @@ const Settings = () => {
                   onChange={handleProfileInputChange}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="timezone">Timezone</Label>
-                <Input
-                  id="timezone"
-                  value={profileData.timezone}
-                  onChange={handleProfileInputChange}
-                />
-              </div>
             </div>
             <div className="flex justify-end mt-6">
               <Button
@@ -277,42 +269,6 @@ const Settings = () => {
         </Card>
 
         {/* Change Email */}
-        {/* <Card className="p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Mail className="w-5 h-5 text-primary-500" />
-            <h3 className="text-xl font-semibold text-gray-900">
-              Change Email
-            </h3>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentEmail">Current Email</Label>
-              <Input
-                id="currentEmail"
-                value={profileData.email}
-                defaultValue="john@example.com"
-                disabled
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newEmail">New Email</Label>
-              <Input id="newEmail" placeholder="Enter new email address" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmEmail">Confirm New Email</Label>
-              <Input
-                id="confirmEmail"
-                placeholder="Confirm new email address"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end mt-6">
-            <Button className="bg-primary-500 hover:bg-primary-600">
-              <Save className="w-4 h-4 mr-2" />
-              Update Email
-            </Button>
-          </div>
-        </Card> */}
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <Mail className="w-5 h-5 text-primary-500" />

@@ -86,7 +86,6 @@ export const BillUploadZone = () => {
                         <Upload className="w-4 h-4 mr-2" />
                         {isUploading ? 'Uploading...' : 'Choose File'}
                     </Button>
-                    <Button variant="outline" disabled={isUploading}>Enter Manually</Button>
                 </div>
                 <p className="text-sm text-gray-500 mt-4">
                     Supports PDF, JPG, PNG files up to 10MB

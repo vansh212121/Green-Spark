@@ -6,12 +6,10 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useConfirmEmailChangeMutation } from "@/features/api/authApi";
-import { userLoggedOut } from "@/features/authSlice"; // We need this to force logout
 
 // Re-using our smart error handler
 const getApiErrorMessage = (err, defaultMessage) => {

@@ -29,7 +29,6 @@ const ResetPasswordPage = () => {
   const [confirmPasswordReset, { isLoading, isError, error }] =
     useConfirmPasswordResetMutation();
 
-  // Effect to show an error and redirect if the token is missing from the URL
   useEffect(() => {
     if (!token) {
       toast.error("Invalid Request", {

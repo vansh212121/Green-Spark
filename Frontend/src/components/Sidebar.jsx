@@ -35,20 +35,16 @@ export const Sidebar = () => {
 
   const handleLogout = () => {
     if (refreshToken) {
-      // THE REFINEMENT: Using toast.promise for cleaner UX feedback.
       const promise = logout({ refresh_token: refreshToken }).unwrap();
 
       toast.promise(promise, {
         loading: "Signing out...",
         success: () => {
-          // This function is called after the API succeeds and onQueryStarted cleans up state.
-          // We can now safely navigate the user away.
-          navigate("/auth"); // Redirect to login page on successful logout
+          navigate("/auth");
           return "You have been signed out successfully!";
         },
         error: () => {
-          // This is called if the API call fails. onQueryStarted still cleans up state.
-          navigate("/auth"); // Still redirect, as the user is logged out locally
+          navigate("/auth");
           return "Logout failed on the server, but you are now signed out.";
         },
       });

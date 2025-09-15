@@ -7,29 +7,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FileText, Zap } from "lucide-react";
-import { useGetMyBillsQuery } from "@/features/api/billApi"; // Fetches data directly in this component
+import { useGetMyBillsQuery } from "@/features/api/billApi";
 
 export const BillSelector = ({ selectedBill, onBillChange }) => {
   // 1. Fetch the transformed and formatted list of bills directly in this component.
   const { data: billsData, isLoading } = useGetMyBillsQuery();
   const bills = billsData?.results || [];
 
-  // 2. Effect to automatically select the first bill when data loads.
-  // It calls the onBillChange prop to notify the parent page of the selection.
   useEffect(() => {
     if (bills.length > 0 && !selectedBill) {
       onBillChange(bills[0].id); // ✅ runs only once now
     }
   }, [bills, selectedBill, onBillChange]);
 
-  // 3. Helper to find the full data object for the selected bill ID.
   const getSelectedBillData = () => {
     if (!selectedBill && bills.length > 0) return bills[0];
     return bills.find((bill) => bill.id === selectedBill) || null;
   };
   const selectedData = getSelectedBillData();
 
-  // 4. Render a disabled placeholder while loading or if there are no bills.
   if (isLoading || bills.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
@@ -59,7 +55,6 @@ export const BillSelector = ({ selectedBill, onBillChange }) => {
     );
   }
 
-  // 5. Render the full, interactive selector once data is available.
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center justify-between">

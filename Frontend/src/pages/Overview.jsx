@@ -19,7 +19,6 @@ import {
   Pie,
   Cell,
   Tooltip,
-  Legend,
   ZAxis,
   ScatterChart,
   Scatter,
@@ -371,7 +370,7 @@ const Overview = () => {
       ));
     }
     if (isError || !metrics) {
-      return null; // Don't show charts if there's an error or no data
+      return null; 
     }
 
     const {
@@ -387,28 +386,60 @@ const Overview = () => {
           title="Bill Cost Breakdown"
           description="Distribution of charges for the selected month"
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={billBreakdownData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={110}
-                paddingAngle={3}
-                dataKey="value"
-                nameKey="name"
-              >
-                {billBreakdownData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Pie Chart */}
+            <div className="flex-1 flex items-center justify-center">
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={billBreakdownData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={110}
+                    paddingAngle={3}
+                    dataKey="value"
+                    nameKey="name"
+                  >
+                    {billBreakdownData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => [`₹${value.toFixed(2)}`, "Amount"]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Breakdown List with scroll */}
+            <div className="flex-1 max-h-[300px] overflow-y-auto pr-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Details
+              </h4>
+              <ul className="space-y-2">
+                {billBreakdownData.map((item, index) => (
+                  <li
+                    key={index}
+                    className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block w-3 h-3 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      ></span>
+                      <span className="text-gray-800 text-sm font-medium">
+                        {item.name}
+                      </span>
+                    </div>
+                    <span className="text-gray-600 text-sm font-semibold">
+                      ₹{item.value.toFixed(2)}
+                    </span>
+                  </li>
                 ))}
-              </Pie>
-              <Tooltip
-                formatter={(value) => [`₹${value.toFixed(2)}`, "Amount"]}
-              />
-              <Legend iconType="circle" />
-            </PieChart>
-          </ResponsiveContainer>
+              </ul>
+            </div>
+          </div>
         </ChartCard>
 
         <ChartCard

@@ -17,6 +17,7 @@ const rootReducer = combineReducers({
 
     // Regular Slice Reducer
     auth: authReducer,
+
 });
 
 export default rootReducer;

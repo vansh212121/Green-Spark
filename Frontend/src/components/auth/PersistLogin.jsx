@@ -21,8 +21,6 @@ const PersistLogin = () => {
     return <p>Loading session...</p>;
   }
 
-  // If /me failed but we had a token, baseQueryWithReauth will try refresh
-  // Worst case: user is logged out by authSlice
   return <Outlet />;
 };
 

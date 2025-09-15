@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ApplianceSurvey } from "@/components/appliances/ApplianceSurvey";
 import { ApplianceEstimates } from "@/components/appliances/ApplianceEstimates";
 import { BillSelector } from "@/components/bills/BillSelector";
@@ -15,17 +15,14 @@ import { Separator } from "@/components/ui/separator";
 import {
   Zap,
   Settings,
-  TrendingUp,
   AlertTriangle,
   Calculator,
-  BarChart3,
   Plus,
-  IndianRupee,
   Timer,
   Eye,
-  Activity,
   Edit2,
   Trash2,
+  Star,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -97,19 +94,6 @@ const Appliances = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "high":
-        return "bg-red-50 text-red-700 border-red-200";
-      case "normal":
-        return "bg-blue-50 text-blue-700 border-blue-200";
-      case "low":
-        return "bg-green-50 text-green-700 border-green-200";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
-    }
-  };
-
   const {
     data: appliancesData,
     isLoading,
@@ -144,6 +128,152 @@ const Appliances = () => {
   const handleEditAppliance = (appliance) => {
     setEditingAppliance(appliance); // store the appliance being edited
     setShowSurvey(true); // open modal
+  };
+
+  // --- NEW DYNAMIC QUICK STATS COMPONENT ---
+  const QuickStats = ({ appliances, isLoading }) => {
+    // Calculate metrics only when the appliance list changes
+    const stats = useMemo(() => {
+      if (!appliances || appliances.length === 0) {
+        return {
+          surveyedConsumption: { value: 0, count: 0 },
+          highestConsumer: { name: "N/A", kwh: 0, percentage: 0 },
+          avgEfficiency: { score: 0, text: "No Data" },
+        };
+      }
+
+      // 1. Surveyed Consumption
+      const totalKwh = appliances.reduce(
+        (sum, app) => sum + (app.estimates?.[0]?.estimated_kwh || 0),
+        0
+      );
+      const surveyedConsumption = {
+        value: totalKwh.toFixed(1),
+        count: appliances.length,
+      };
+
+      // 2. Highest Consumer
+      const topAppliance = [...appliances].sort(
+        (a, b) =>
+          (b.estimates?.[0]?.estimated_kwh || 0) -
+          (a.estimates?.[0]?.estimated_kwh || 0)
+      )[0];
+      const topKwh = topAppliance?.estimates?.[0]?.estimated_kwh || 0;
+      const highestConsumer = {
+        name: topAppliance?.custom_name || "N/A",
+        kwh: topKwh.toFixed(1),
+        percentage: totalKwh > 0 ? ((topKwh / totalKwh) * 100).toFixed(0) : 0,
+      };
+
+      // 3. Average Efficiency
+      const totalStars = appliances.reduce(
+        (sum, app) => sum + (app.star_rating || 0),
+        0
+      );
+      const avgStars = totalStars / appliances.length;
+      const avgEfficiency = {
+        score: avgStars.toFixed(1),
+        text:
+          avgStars >= 4
+            ? "Excellent"
+            : avgStars >= 3
+            ? "Good"
+            : "Needs Improvement",
+      };
+
+      return { surveyedConsumption, highestConsumer, avgEfficiency };
+    }, [appliances]);
+
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Card
+              key={i}
+              className="h-40 bg-gray-200 animate-pulse border-none"
+            ></Card>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="shadow-sm bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center text-blue-900">
+              <div className="p-2 bg-blue-200 rounded-lg mr-3">
+                <Zap className="w-5 h-5 text-blue-700" />
+              </div>
+              Surveyed Consumption
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="text-3xl font-bold text-blue-900">
+                {stats.surveyedConsumption.value} kWh
+              </div>
+              <p className="text-blue-700 text-sm">
+                From {stats.surveyedConsumption.count} appliance
+                {stats.surveyedConsumption.count !== 1 && "s"}
+              </p>
+              <Badge className="bg-blue-200 text-blue-800 hover:bg-blue-200">
+                Total from Survey
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center text-red-900">
+              <div className="p-2 bg-red-200 rounded-lg mr-3">
+                <AlertTriangle className="w-5 h-5 text-red-700" />
+              </div>
+              Highest Consumer
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="text-2xl font-bold text-red-900">
+                {stats.highestConsumer.name}
+              </div>
+              <p className="text-red-700 text-sm">
+                {stats.highestConsumer.kwh} kWh (
+                {stats.highestConsumer.percentage}%)
+              </p>
+              <Badge className="bg-red-200 text-red-800 hover:bg-red-200">
+                High Usage
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center text-green-900">
+              <div className="p-2 bg-green-200 rounded-lg mr-3">
+                <Star className="w-5 h-5 text-green-700" />
+              </div>
+              Average Efficiency
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="text-3xl font-bold text-green-900">
+                {stats.avgEfficiency.score} / 5 Stars
+              </div>
+              <p className="text-green-700 text-sm">
+                {stats.avgEfficiency.text} performance
+              </p>
+              <Badge className="bg-green-200 text-green-800 hover:bg-green-200">
+                Based on Star Ratings
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   };
 
   return (
@@ -186,76 +316,8 @@ const Appliances = () => {
       {hasSurveyData ? (
         <div className="space-y-8">
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className=" shadow-sm bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center text-blue-900">
-                  <div className="p-2 bg-blue-200 rounded-lg mr-3">
-                    <Zap className="w-5 h-5 text-blue-700" />
-                  </div>
-                  Total Consumption
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-3xl font-bold text-blue-900">
-                    450 kWh
-                  </div>
-                  <p className="text-blue-700 text-sm">This month</p>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
-                    <span className="text-sm text-green-600 font-medium">
-                      +12% vs last month
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <QuickStats appliances={appliances} isLoading={isLoading} />
 
-            <Card className=" shadow-sm bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center text-red-900">
-                  <div className="p-2 bg-red-200 rounded-lg mr-3">
-                    <AlertTriangle className="w-5 h-5 text-red-700" />
-                  </div>
-                  Highest Consumer
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-2xl font-bold text-red-900">
-                    Air Conditioner
-                  </div>
-                  <p className="text-red-700 text-sm">189 kWh (42%)</p>
-                  <Badge className="bg-red-200 text-red-800 hover:bg-red-200">
-                    High Usage
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className=" shadow-sm bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center text-green-900">
-                  <div className="p-2 bg-green-200 rounded-lg mr-3">
-                    <Activity className="w-5 h-5 text-green-700" />
-                  </div>
-                  Efficiency Score
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="text-3xl font-bold text-green-900">
-                    7.2/10
-                  </div>
-                  <p className="text-green-700 text-sm">Good performance</p>
-                  <Badge className="bg-green-200 text-green-800 hover:bg-green-200">
-                    Room for improvement
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
           {/* Estimates Section */}
           {showEstimates && (
             <>

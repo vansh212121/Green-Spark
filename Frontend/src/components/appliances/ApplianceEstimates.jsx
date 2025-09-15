@@ -1,4 +1,7 @@
-import { ChartCard } from "@/components/ChartCard";
+import React, { useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Zap, TrendingUp, Calculator, AlertCircle } from "lucide-react";
+
 import {
   BarChart,
   Bar,
@@ -9,124 +12,180 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
-  Area,
-  AreaChart,
+  Tooltip,
+  Legend,
 } from "recharts";
-import { Button } from "@/components/ui/button";
-import { Zap, TrendingUp, Calculator } from "lucide-react";
 import { useGetEstimatesForBillQuery } from "@/features/api/applianceApi";
+import { ChartCard } from "../ChartCard";
 
-const applianceData = [
-  { appliance: "AC", consumption: 189, cost: 1032, efficiency: 85 },
-  { appliance: "Refrigerator", consumption: 81, cost: 442, efficiency: 78 },
-  { appliance: "Water Heater", consumption: 68, cost: 368, efficiency: 82 },
-  { appliance: "Washing Machine", consumption: 35, cost: 190, efficiency: 88 },
-  { appliance: "TV", consumption: 28, cost: 152, efficiency: 92 },
-  { appliance: "Lighting", consumption: 49, cost: 267, efficiency: 95 },
-];
+// --- Presentational Sub-components ---
+const MetricCard = ({ title, value, subtitle, icon: Icon, iconColor }) => (
+  <div className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="font-medium text-gray-600">{title}</h3>
+      <Icon className={`w-5 h-5 ${iconColor}`} />
+    </div>
+    <div className="text-2xl font-semibold text-gray-900 mb-1">{value}</div>
+    <p className="text-sm text-gray-500">{subtitle}</p>
+  </div>
+);
 
-const monthlyEstimates = [
-  { month: "Jan", estimated: 420, actual: 450, savings: 30 },
-  { month: "Feb", estimated: 380, actual: 395, savings: 15 },
-  { month: "Mar", estimated: 410, actual: 425, savings: 15 },
-  { month: "Apr", estimated: 480, actual: 465, savings: -15 },
-  { month: "May", estimated: 520, actual: 535, savings: 15 },
-  { month: "Jun", estimated: 550, actual: 525, savings: -25 },
-];
+const MetricCardSkeleton = () => (
+  <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+    <div className="flex items-center justify-between mb-4">
+      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+      <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+    </div>
+    <div className="h-7 bg-gray-300 rounded w-1/3 mb-1"></div>
+    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+  </div>
+);
 
-const efficiencyData = [
-  { name: "High Efficiency", value: 35, color: "#22c55e" },
-  { name: "Medium Efficiency", value: 45, color: "#f59e0b" },
-  { name: "Low Efficiency", value: 20, color: "#ef4444" },
-];
-
-const COLORS = ["#22c55e", "#f59e0b", "#ef4444"];
+const ChartSkeleton = () => (
+  <div className="h-80 bg-gray-200 rounded-xl animate-pulse"></div>
+);
 
 export const ApplianceEstimates = ({ selectedBill, appliances }) => {
-  const { data, isLoading, isError } =
-    useGetEstimatesForBillQuery(selectedBill);
+  // Hooks are called at the top, before any conditional returns.
+  const {
+    data: estimates,
+    isLoading,
+    isError,
+  } = useGetEstimatesForBillQuery(selectedBill, {
+    skip: !selectedBill,
+  });
 
-  if (isLoading)
-    return <p className="text-gray-500 p-6">Loading appliance estimates...</p>;
-  if (isError || !data?.length)
-    return (
-      <p className="text-gray-500 p-6">No estimates available for this bill.</p>
-    );
-
-  const estimates = data;
-
-  // Helper to get appliance name from the list
   const getApplianceName = (user_appliance_id) => {
     const appliance = appliances.find((a) => a.id === user_appliance_id);
-    return appliance ? appliance.custom_name : "Unknown Appliance";
+    return appliance ? appliance.custom_name : "Unknown";
   };
 
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-            Appliance Estimates
-          </h2>
-          <p className="text-gray-600">
-            Based on {selectedBill || "January 2025"} bill data and your
-            appliance survey
-          </p>
-        </div>
-        <Button className="bg-primary-500 hover:bg-primary-600">
-          <Calculator className="w-4 h-4 mr-2" />
-          Recalculate Estimates
-        </Button>
-      </div>
+  const { metrics, chartData } = useMemo(() => {
+    if (
+      !estimates ||
+      estimates.length === 0 ||
+      !appliances ||
+      appliances.length === 0
+    ) {
+      return { metrics: null, chartData: null };
+    }
 
-      {/* Accuracy Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-gray-600">Estimation Accuracy</h3>
-            <Zap className="w-5 h-5 text-primary-500" />
-          </div>
-          <div className="text-2xl font-semibold text-gray-900 mb-1">94%</div>
-          <p className="text-sm text-gray-500">Within 6% of actual usage</p>
-        </div>
+    const totalKwh = estimates.reduce((sum, est) => sum + est.estimated_kwh, 0);
+    const totalCost = estimates.reduce(
+      (sum, est) => sum + est.estimated_cost,
+      0
+    );
+    const blendedRate = totalKwh > 0 ? totalCost / totalKwh : 0;
+    const metrics = {
+      totalKwh: `${totalKwh.toFixed(1)} kWh`,
+      totalCost: new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+      }).format(totalCost),
+      blendedRate: `₹${blendedRate.toFixed(2)} / kWh`,
+      count: estimates.length,
+    };
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-gray-600">Potential Savings</h3>
-            <TrendingUp className="w-5 h-5 text-success-400" />
-          </div>
-          <div className="text-2xl font-semibold text-gray-900 mb-1">₹380</div>
-          <p className="text-sm text-gray-500">Per month with optimization</p>
-        </div>
+    const applianceConsumptionData = estimates
+      .map((est) => ({
+        name: getApplianceName(est.user_appliance_id),
+        consumption: parseFloat(est.estimated_kwh.toFixed(1)),
+      }))
+      .sort((a, b) => a.consumption - b.consumption);
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-gray-600">Average Efficiency</h3>
-            <Calculator className="w-5 h-5 text-warning-500" />
-          </div>
-          <div className="text-2xl font-semibold text-gray-900 mb-1">83%</div>
-          <p className="text-sm text-gray-500">Room for improvement</p>
-        </div>
-      </div>
+    let highEff = 0,
+      medEff = 0,
+      lowEff = 0;
+    appliances.forEach((app) => {
+      if (app.star_rating >= 4) highEff++;
+      else if (app.star_rating === 3) medEff++;
+      else lowEff++;
+    });
+    const efficiencyData = [
+      { name: "High (4-5 Stars)", value: highEff, color: "#22c55e" },
+      { name: "Medium (3 Stars)", value: medEff, color: "#f59e0b" },
+      { name: "Low (1-2 Stars)", value: lowEff, color: "#ef4444" },
+    ].filter((d) => d.value > 0);
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    const chartData = { applianceConsumptionData, efficiencyData };
+
+    return { metrics, chartData };
+  }, [estimates, appliances]);
+
+  const renderMetrics = () => {
+    if (isLoading) {
+      return [...Array(3)].map((_, i) => <MetricCardSkeleton key={i} />);
+    }
+    if (isError || !metrics) {
+      return (
+        <div className="md:col-span-3 text-center p-6 bg-gray-50 rounded-lg">
+          <AlertCircle className="mx-auto w-8 h-8 text-gray-400 mb-2" />
+          <p className="text-gray-600">No estimates available for this bill.</p>
+        </div>
+      );
+    }
+    return (
+      <>
+        <MetricCard
+          title="Total Estimated Consumption"
+          value={metrics.totalKwh}
+          subtitle={`From ${metrics.count} surveyed appliances`}
+          icon={Zap}
+          iconColor="text-primary-500"
+        />
+        <MetricCard
+          title="Total Estimated Cost"
+          value={metrics.totalCost}
+          subtitle="For the surveyed devices"
+          icon={TrendingUp}
+          iconColor="text-green-500"
+        />
+        <MetricCard
+          title="Blended Appliance Rate"
+          value={metrics.blendedRate}
+          subtitle="Average cost of energy used"
+          icon={Calculator}
+          iconColor="text-amber-500"
+        />
+      </>
+    );
+  };
+
+  const renderCharts = () => {
+    if (isLoading) {
+      return (
+        <>
+          <ChartSkeleton />
+          <ChartSkeleton />
+        </>
+      );
+    }
+    if (isError || !chartData) {
+      return null; // Don't render charts if there's no data or an error
+    }
+    return (
+      <>
         <ChartCard title="Appliance Consumption Breakdown">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={applianceData} layout="horizontal">
+            <BarChart
+              data={chartData.applianceConsumptionData}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-              <XAxis type="number" axisLine={false} tickLine={false} />
+              <XAxis type="number" tick={{ fontSize: 12 }} />
               <YAxis
                 type="category"
-                dataKey="appliance"
-                axisLine={false}
-                tickLine={false}
+                dataKey="name"
+                tick={{ fontSize: 12 }}
                 width={80}
+                interval={0}
               />
-              <Bar dataKey="consumption" fill="#22c55e" radius={[0, 4, 4, 0]} />
+              <Tooltip
+                cursor={{ fill: "#fafafa" }}
+                formatter={(value) => [`${value} kWh`, "Consumption"]}
+              />
+              <Bar dataKey="consumption" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -135,67 +194,64 @@ export const ApplianceEstimates = ({ selectedBill, appliances }) => {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={efficiencyData}
+                data={chartData.efficiencyData}
                 cx="50%"
                 cy="50%"
-                innerRadius={40}
-                outerRadius={80}
+                innerRadius={60}
+                outerRadius={100}
                 dataKey="value"
-                label={({ name, percent }) =>
-                  `${name} ${(percent * 100).toFixed(0)}%`
-                }
+                nameKey="name"
+                labelLine={false}
+                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
               >
-                {efficiencyData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                {chartData.efficiencyData.map((entry) => (
+                  <Cell key={entry.name} fill={entry.color} />
                 ))}
               </Pie>
+              <Tooltip formatter={(value, name) => [value, name]} />
+              <Legend iconType="circle" />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
+      </>
+    );
+  };
 
-        <ChartCard title="Estimated vs Actual Usage">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={monthlyEstimates}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
-              <Line
-                type="monotone"
-                dataKey="estimated"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Estimated"
-              />
-              <Line
-                type="monotone"
-                dataKey="actual"
-                stroke="#22c55e"
-                strokeWidth={3}
-                name="Actual"
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard title="Monthly Savings Potential">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={monthlyEstimates}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} />
-              <YAxis axisLine={false} tickLine={false} />
-              <Area
-                type="monotone"
-                dataKey="savings"
-                stroke="#f59e0b"
-                fill="#fef3c7"
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <MetricCardSkeleton />
       </div>
+    );
+  }
+  if (isError || !estimates) {
+    return (
+      <p className="text-gray-500 p-6">No estimates available for this bill.</p>
+    );
+  }
 
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+            Appliance Estimates
+          </h2>
+          <p className="text-gray-600">
+            Based on your appliance survey for the selected bill.
+          </p>
+        </div>
+        <Button className="bg-primary-500 hover:bg-primary-600">
+          <Calculator className="w-4 h-4 mr-2" />
+          Recalculate Estimates
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {renderMetrics()}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {renderCharts()}
+      </div>
       {/* Detailed Appliance List */}
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="p-6 border-b border-gray-200">

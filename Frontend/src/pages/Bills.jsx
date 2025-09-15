@@ -147,20 +147,11 @@
 // export default Bills;
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Upload,
-  FileText,
-  CheckCircle,
-  Filter,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { FileText, CheckCircle, Loader2, AlertCircle } from "lucide-react";
 import { useGetMyBillsQuery } from "../features/api/billApi";
 import { BillUploadZone } from "../components/bills/BillUploadZone";
 
 // --- UI Sub-components ---
-
 const BillItemSkeleton = () => (
   <div className="flex items-center justify-between p-4 border-l-4 border-l-transparent animate-pulse">
     <div className="flex items-center gap-4">
@@ -235,7 +226,6 @@ const BillItem = ({ bill, isSelected, onClick }) => {
 };
 
 // --- Main Page Component ---
-
 const BillsPage = () => {
   const [selectedBill, setSelectedBill] = useState(null);
   const { data: billsData, isLoading, isError } = useGetMyBillsQuery();
@@ -251,8 +241,6 @@ const BillsPage = () => {
       );
     }
 
-    // --- REFINED EMPTY AND ERROR STATE ---
-    // This combined block handles both errors and an empty list gracefully.
     if (isError || !billsData || billsData.results.length === 0) {
       const title = isError ? "Loading Failed" : "No Bills Found";
       const message = isError

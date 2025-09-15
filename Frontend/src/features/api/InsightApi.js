@@ -8,8 +8,6 @@ export const insightApi = createApi({
     baseQuery: baseQueryWithReauth,
     endpoints: (builder) => ({
         // GET /insights/status/{bill_id}
-        // This query checks the status of the insight generation task.
-        // Your backend cleverly triggers the task on the first call if it hasn't started.
         getInsightStatus: builder.query({
             query: (billId) => `/insights/status/${billId}`,
             // Provides a specific tag for this bill's insight status.
@@ -17,7 +15,6 @@ export const insightApi = createApi({
         }),
 
         // GET /insights/report/{bill_id}
-        // This query fetches the final, completed insight report.
         getInsightReport: builder.query({
             query: (billId) => `/insights/report/${billId}`,
             // Provides a specific tag for this bill's insight report.
@@ -25,7 +22,6 @@ export const insightApi = createApi({
         }),
 
         // POST /insights/report/{bill_id}/refresh
-        // This mutation triggers a regeneration of the insight report.
         refreshInsightReport: builder.mutation({
             query: (billId) => ({
                 url: `/insights/report/${billId}/refresh`,
