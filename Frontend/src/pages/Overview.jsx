@@ -1,249 +1,4 @@
-// import { useState } from "react";
-// import { MetricCard } from "@/components/MetricCard";
-// import { ChartCard } from "@/components/ChartCard";
-// import { BillSelector } from "@/components/BillSelector";
-// import {
-//   BarChart,
-//   Bar,
-//   XAxis,
-//   YAxis,
-//   CartesianGrid,
-//   ResponsiveContainer,
-//   PieChart,
-//   Pie,
-//   Cell,
-//   LineChart,
-//   Line,
-//   AreaChart,
-//   Area,
-// } from "recharts";
-// import { Button } from "@/components/ui/button";
-// import { Calendar, Download, Zap } from "lucide-react";
-
-// const monthlyData = [
-//   { month: "Aug", consumption: 320, cost: 1890 },
-//   { month: "Sep", consumption: 350, cost: 2010 },
-//   { month: "Oct", consumption: 380, cost: 2190 },
-//   { month: "Nov", consumption: 320, cost: 1890 },
-//   { month: "Dec", consumption: 380, cost: 2190 },
-//   { month: "Jan", consumption: 450, cost: 2456 },
-// ];
-
-// const billBreakdown = [
-//   { name: "Energy Charges", value: 1680, color: "#22c55e" },
-//   { name: "Fixed Charges", value: 180, color: "#3b82f6" },
-//   { name: "Taxes & Duties", value: 596, color: "#f59e0b" },
-// ];
-
-// const dailyUsage = [
-//   { day: "Mon", usage: 12.5, peak: 18.2 },
-//   { day: "Tue", usage: 14.2, peak: 16.8 },
-//   { day: "Wed", usage: 13.8, peak: 17.5 },
-//   { day: "Thu", usage: 15.1, peak: 19.2 },
-//   { day: "Fri", usage: 16.8, peak: 20.1 },
-//   { day: "Sat", usage: 18.2, peak: 22.5 },
-//   { day: "Sun", usage: 17.5, peak: 21.8 },
-// ];
-
-// const hourlyPattern = [
-//   { hour: "00", consumption: 2.1 },
-//   { hour: "02", consumption: 1.8 },
-//   { hour: "04", consumption: 1.5 },
-//   { hour: "06", consumption: 3.2 },
-//   { hour: "08", consumption: 4.8 },
-//   { hour: "10", consumption: 6.5 },
-//   { hour: "12", consumption: 8.2 },
-//   { hour: "14", consumption: 9.8 },
-//   { hour: "16", consumption: 7.5 },
-//   { hour: "18", consumption: 12.5 },
-//   { hour: "20", consumption: 15.2 },
-//   { hour: "22", consumption: 8.8 },
-// ];
-
-// const COLORS = ["#22c55e", "#3b82f6", "#f59e0b"];
-
-// const Overview = () => {
-//   const [selectedBill, setSelectedBill] = useState("jan-2025");
-//   return (
-//     <div className="p-8 animate-fade-in">
-//       <header className="mb-8">
-//         <div className="flex justify-between items-center mb-4">
-//           <div>
-//             <h1 className="text-3xl font-semibold text-gray-900 mb-2">
-//               Energy Overview
-//             </h1>
-//             <p className="text-gray-600">
-//               January 2025 • Last updated 2 hours ago
-//             </p>
-//           </div>
-//           <div className="flex gap-3">
-//             <Button variant="outline" size="sm">
-//               <Calendar className="w-4 h-4 mr-2" />
-//               Last 6 months
-//             </Button>
-//             <Button variant="outline" size="sm">
-//               <Download className="w-4 h-4 mr-2" />
-//               Export
-//             </Button>
-//           </div>
-//         </div>
-
-// <BillSelector
-//   selectedBill={selectedBill}
-//   onBillChange={setSelectedBill}
-// />
-//       </header>
-
-//       {/* Key Metrics Cards */}
-//       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-//         <MetricCard
-//           title="This Month"
-//           value="₹2,456"
-//           change="+12%"
-//           changeType="increase"
-//           subtitle="450 kWh consumed"
-//         />
-//         <MetricCard
-//           title="Last Month"
-//           value="₹2,190"
-//           change="-8%"
-//           changeType="decrease"
-//           subtitle="380 kWh consumed"
-//         />
-//         <MetricCard
-//           title="Average Daily"
-//           value="₹79"
-//           change="14.5 kWh/day"
-//           changeType="neutral"
-//           subtitle="Slightly above normal"
-//         />
-//         <MetricCard
-//           title="Carbon Footprint"
-//           value="180 kg CO₂"
-//           change="-15%"
-//           changeType="decrease"
-//           subtitle="vs last month"
-//         />
-//       </div>
-
-//       {/* Main Charts */}
-//       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-//         <ChartCard title="6-Month Usage Trend">
-//           <ResponsiveContainer width="100%" height="100%">
-//             <BarChart data={monthlyData}>
-//               <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-//               <XAxis dataKey="month" axisLine={false} tickLine={false} />
-//               <YAxis axisLine={false} tickLine={false} />
-//               <Bar dataKey="consumption" fill="#22c55e" radius={[4, 4, 0, 0]} />
-//             </BarChart>
-//           </ResponsiveContainer>
-//         </ChartCard>
-
-//         <ChartCard title="Current Bill Breakdown">
-//           <ResponsiveContainer width="100%" height="100%">
-//             <PieChart>
-//               <Pie
-//                 data={billBreakdown}
-//                 cx="50%"
-//                 cy="50%"
-//                 outerRadius={80}
-//                 dataKey="value"
-//                 label={({ name, percent }) =>
-//                   `${name} ${(percent * 100).toFixed(0)}%`
-//                 }
-//               >
-//                 {billBreakdown.map((entry, index) => (
-//                   <Cell
-//                     key={`cell-${index}`}
-//                     fill={COLORS[index % COLORS.length]}
-//                   />
-//                 ))}
-//               </Pie>
-//             </PieChart>
-//           </ResponsiveContainer>
-//         </ChartCard>
-
-//         <ChartCard title="Daily Usage Pattern">
-//           <ResponsiveContainer width="100%" height="100%">
-//             <LineChart data={dailyUsage}>
-//               <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-//               <XAxis dataKey="day" axisLine={false} tickLine={false} />
-//               <YAxis axisLine={false} tickLine={false} />
-//               <Line
-//                 type="monotone"
-//                 dataKey="usage"
-//                 stroke="#22c55e"
-//                 strokeWidth={3}
-//                 dot={{ fill: "#22c55e", strokeWidth: 2 }}
-//               />
-//               <Line
-//                 type="monotone"
-//                 dataKey="peak"
-//                 stroke="#f59e0b"
-//                 strokeWidth={2}
-//                 strokeDasharray="5 5"
-//                 dot={{ fill: "#f59e0b", strokeWidth: 2 }}
-//               />
-//             </LineChart>
-//           </ResponsiveContainer>
-//         </ChartCard>
-
-//         <ChartCard title="24-Hour Consumption Pattern">
-//           <ResponsiveContainer width="100%" height="100%">
-//             <AreaChart data={hourlyPattern}>
-//               <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
-//               <XAxis dataKey="hour" axisLine={false} tickLine={false} />
-//               <YAxis axisLine={false} tickLine={false} />
-//               <Area
-//                 type="monotone"
-//                 dataKey="consumption"
-//                 stroke="#3b82f6"
-//                 fill="#dbeafe"
-//                 strokeWidth={2}
-//               />
-//             </AreaChart>
-//           </ResponsiveContainer>
-//         </ChartCard>
-//       </div>
-
-//       {/* Quick Actions & Recommendations */}
-//       <div className="bg-white rounded-xl border border-gray-200 p-6">
-//         <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-//           <Zap className="w-5 h-5 mr-2 text-primary-500" />
-//           Quick Actions
-//         </h3>
-//         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//           <div className="p-4 bg-gradient-subtle rounded-lg border border-primary-100">
-//             <h4 className="font-medium text-gray-900 mb-2">
-//               Update Appliance Usage
-//             </h4>
-//             <p className="text-sm text-gray-600 mb-3">
-//               Your AC usage seems higher this month
-//             </p>
-//             <Button size="sm" className="bg-primary-500 hover:bg-primary-600">
-//               Review Settings
-//             </Button>
-//           </div>
-//           <div className="p-4 bg-gradient-subtle rounded-lg border border-primary-100">
-//             <h4 className="font-medium text-gray-900 mb-2">
-//               Potential Savings
-//             </h4>
-//             <p className="text-sm text-gray-600 mb-3">
-//               You could save ₹300/month with these tips
-//             </p>
-//             <Button size="sm" className="bg-primary-500 hover:bg-primary-600">
-//               View Insights
-//             </Button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default Overview;
-
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -263,16 +18,14 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
   Tooltip,
   Legend,
+  ZAxis,
+  ScatterChart,
+  Scatter,
 } from "recharts";
 import {
   Calendar,
-  Download,
   Zap,
   TrendingUp,
   TrendingDown,
@@ -284,76 +37,43 @@ import {
   CheckCircle2,
   Clock,
   Target,
+  FileText,
 } from "lucide-react";
 import { BillSelector } from "@/components/bills/BillSelector";
+import { Link } from "react-router-dom";
+import { useGetBillByIdQuery } from "@/features/api/billApi";
 
-// Sample data
-const monthlyData = [
-  { month: "Aug", consumption: 320, cost: 1890, target: 350 },
-  { month: "Sep", consumption: 350, cost: 2010, target: 350 },
-  { month: "Oct", consumption: 380, cost: 2190, target: 350 },
-  { month: "Nov", consumption: 320, cost: 1890, target: 350 },
-  { month: "Dec", consumption: 380, cost: 2190, target: 350 },
-  { month: "Jan", consumption: 450, cost: 2456, target: 350 },
-];
-
-const billBreakdown = [
-  { name: "Energy Charges", value: 1680, color: "#22c55e" },
-  { name: "Fixed Charges", value: 180, color: "#3b82f6" },
-  { name: "Taxes & Duties", value: 596, color: "#f59e0b" },
-];
-
-const dailyUsage = [
-  { day: "Mon", usage: 12.5, peak: 18.2 },
-  { day: "Tue", usage: 14.2, peak: 16.8 },
-  { day: "Wed", usage: 13.8, peak: 17.5 },
-  { day: "Thu", usage: 15.1, peak: 19.2 },
-  { day: "Fri", usage: 16.8, peak: 20.1 },
-  { day: "Sat", usage: 18.2, peak: 22.5 },
-  { day: "Sun", usage: 17.5, peak: 21.8 },
-];
-
-const hourlyPattern = [
-  { hour: "00", consumption: 2.1 },
-  { hour: "02", consumption: 1.8 },
-  { hour: "04", consumption: 1.5 },
-  { hour: "06", consumption: 3.2 },
-  { hour: "08", consumption: 4.8 },
-  { hour: "10", consumption: 6.5 },
-  { hour: "12", consumption: 8.2 },
-  { hour: "14", consumption: 9.8 },
-  { hour: "16", consumption: 7.5 },
-  { hour: "18", consumption: 12.5 },
-  { hour: "20", consumption: 15.2 },
-  { hour: "22", consumption: 8.8 },
-];
-
-const insights = [
-  {
-    type: "warning",
-    icon: AlertCircle,
-    title: "High Peak Usage",
-    description: "Your consumption spikes between 6-8 PM",
-    action: "View Details",
-    color: "bg-amber-50 border-amber-200",
-  },
-  {
-    type: "success",
-    icon: CheckCircle2,
-    title: "Energy Efficient Week",
-    description: "15% below your monthly average",
-    action: "See Trends",
-    color: "bg-green-50 border-green-200",
-  },
-  {
-    type: "info",
-    icon: Target,
-    title: "Budget On Track",
-    description: "₹544 remaining for January",
-    action: "Manage Budget",
-    color: "bg-blue-50 border-blue-200",
-  },
-];
+const InsightCard = ({ type, title, description, action, icon: Icon }) => {
+  const colorConfig = {
+    warning: "bg-amber-50 border-amber-200",
+    success: "bg-green-50 border-green-200",
+    info: "bg-blue-50 border-blue-200",
+  };
+  return (
+    <Card
+      className={`${colorConfig[type]} border hover:shadow-md transition-all duration-300`}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-white rounded-lg">
+            <Icon className="w-4 h-4 text-gray-700" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-medium text-gray-900 mb-1">{title}</h4>
+            <p className="text-sm text-gray-600 mb-2">{description}</p>
+            <Button
+              variant="link"
+              size="sm"
+              className="p-0 h-auto text-primary-600 hover:text-primary-700"
+            >
+              {action} →
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 // Enhanced metric card component
 const MetricCard = ({
@@ -363,29 +83,26 @@ const MetricCard = ({
   changeType,
   subtitle,
   icon: Icon,
-  trend = null,
 }) => {
   const getChangeColor = () => {
-    if (changeType === "increase") return "text-red-600 bg-red-50";
-    if (changeType === "decrease") return "text-green-600 bg-green-50";
-    return "text-gray-600 bg-gray-50";
+    if (changeType === "increase") return "text-red-600 bg-red-100";
+    if (changeType === "decrease") return "text-green-600 bg-green-100";
+    return "text-gray-600 bg-gray-100";
   };
-
   const getTrendIcon = () => {
     if (changeType === "increase") return <TrendingUp className="w-3 h-3" />;
     if (changeType === "decrease") return <TrendingDown className="w-3 h-3" />;
     return <Activity className="w-3 h-3" />;
   };
-
   return (
     <Card className="relative overflow-hidden bg-white/60 backdrop-blur-sm border-gray-200 hover:shadow-lg transition-all duration-300">
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="p-2 bg-primary-50 rounded-lg">
+          <div className="p-2 bg-primary-100 rounded-lg">
             <Icon className="w-5 h-5 text-primary-600" />
           </div>
           <Badge
-            className={`px-2 py-1 text-xs font-medium ${getChangeColor()}`}
+            className={`flex items-center px-2 py-1 text-xs font-medium ${getChangeColor()}`}
           >
             {getTrendIcon()}
             <span className="ml-1">{change}</span>
@@ -398,52 +115,391 @@ const MetricCard = ({
           <p className="text-2xl font-bold text-gray-900">{value}</p>
           <p className="text-sm text-gray-500">{subtitle}</p>
         </div>
-        {trend && (
-          <div
-            className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-primary-300"
-            style={{ width: `${trend}%` }}
-          />
-        )}
       </CardContent>
     </Card>
   );
 };
 
-// Chart card wrapper
-const ChartCard = ({ title, description, children, action }) => (
-  <Card className="bg-white/60 backdrop-blur-sm border-gray-200 hover:shadow-lg transition-all duration-300">
-    <CardHeader className="pb-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <CardTitle className="text-lg font-semibold text-gray-900">
-            {title}
-          </CardTitle>
-          {description && (
-            <CardDescription className="text-sm text-gray-600 mt-1">
-              {description}
-            </CardDescription>
-          )}
-        </div>
-        {action && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary-600 hover:text-primary-700"
-          >
-            {action}
-          </Button>
-        )}
-      </div>
+const ChartCard = ({ title, description, children }) => (
+  <Card className="shadow-sm hover:shadow-lg transition-shadow duration-300">
+    <CardHeader>
+      <CardTitle>{title}</CardTitle>
+      <CardDescription>{description}</CardDescription>
     </CardHeader>
-    <CardContent className="pt-2">
-      <div className="h-80">{children}</div>
-    </CardContent>
+    <CardContent className="h-80">{children}</CardContent>
   </Card>
 );
 
 const Overview = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState("6months");
-  const [selectedBill, setSelectedBill] = useState("jan-2025");
+  const [selectedBill, setSelectedBill] = useState(null);
+
+  const {
+    data: billData,
+    isLoading,
+    isError,
+  } = useGetBillByIdQuery(selectedBill, {
+    skip: !selectedBill,
+  });
+
+  const { metrics, chartsData } = useMemo(() => {
+    if (!billData) return { metrics: null, chartsData: null };
+
+    const formatCurrency = (amount) =>
+      new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+      }).format(amount || 0);
+
+    const totalBill = {
+      title: `Bill for ${new Date(billData.billing_period_start).toLocaleString(
+        "default",
+        { month: "long" }
+      )}`,
+      value: formatCurrency(billData.cost_total),
+      subtitle: `${billData.kwh_total.toFixed(2)} kWh consumed`,
+      change: `${formatCurrency(billData.cost_total / billData.kwh_total)}/kWh`,
+    };
+
+    let highestConsumer = {
+      value: "N/A",
+      subtitle: "No appliances found",
+      change: "0%",
+    };
+    if (billData.user_appliances && billData.user_appliances.length > 0) {
+      const topAppliance = billData.user_appliances.reduce(
+        (max, app) =>
+          app.estimates[0]?.estimated_cost > max.estimates[0]?.estimated_cost
+            ? app
+            : max,
+        billData.user_appliances[0]
+      );
+      const topEstimate = topAppliance.estimates[0];
+      highestConsumer = {
+        value: topAppliance.custom_name,
+        subtitle: `${topEstimate.estimated_kwh.toFixed(2)} kWh`,
+        change: `${(
+          (topEstimate.estimated_cost / billData.cost_total) *
+          100
+        ).toFixed(0)}%`,
+      };
+    }
+
+    const startDate = new Date(billData.billing_period_start);
+    const endDate = new Date(billData.billing_period_end);
+    const daysInPeriod = (endDate - startDate) / (1000 * 60 * 60 * 24) + 1;
+    const dailyAverage = {
+      value: formatCurrency(billData.cost_total / daysInPeriod),
+      subtitle: `${(billData.kwh_total / daysInPeriod).toFixed(2)} kWh/day`,
+      change: `${daysInPeriod}-day period`,
+    };
+
+    const carbonFootprint = {
+      value: `${(billData.kwh_total * 0.82).toFixed(1)} kg CO₂`,
+      subtitle: "CO₂ emissions for this period",
+      change: `~${Math.round((billData.kwh_total * 0.82) / 22)} trees`,
+    };
+
+    let quickInsights = [];
+    if (billData.user_appliances && billData.user_appliances.length > 0) {
+      const topAppliance = billData.user_appliances.reduce(
+        (max, app) =>
+          app.estimates[0]?.estimated_cost > max.estimates[0]?.estimated_cost
+            ? app
+            : max,
+        billData.user_appliances[0]
+      );
+      quickInsights.push({
+        type: "warning",
+        icon: AlertCircle,
+        title: "Primary Consumer",
+        description: `${topAppliance.custom_name} is your highest usage device this month.`,
+        action: "View Appliances",
+      });
+    }
+    if (billData.parse_status === "success") {
+      quickInsights.push({
+        type: "success",
+        icon: CheckCircle2,
+        title: "Bill Processed",
+        description: `Successfully analyzed your bill for ${new Date(
+          billData.billing_period_start
+        ).toLocaleString("default", { month: "long" })}.`,
+        action: "See Report",
+      });
+    }
+    const applianceCount = billData.user_appliances?.length || 0;
+    quickInsights.push({
+      type: "info",
+      icon: Target,
+      title: `${applianceCount} Appliances Surveyed`,
+      description: `Your insights are based on the ${applianceCount} appliances you've added for this bill.`,
+      action: "Manage Appliances",
+    });
+
+    const metricsData = {
+      totalBill,
+      highestConsumer,
+      dailyAverage,
+      carbonFootprint,
+      quickInsights: quickInsights.slice(0, 3),
+    };
+
+    const COLORS = ["#3b82f6", "#10b981", "#f97316", "#ef4444", "#8b5cf6"];
+    const billBreakdownData =
+      billData.normalized_json?.charges_breakdown?.map((item, index) => ({
+        name: item.name,
+        value: item.amount,
+        color: COLORS[index % COLORS.length],
+      })) || [];
+    const applianceConsumptionData =
+      billData.user_appliances
+        ?.map((app) => ({
+          name: app.custom_name,
+          consumption: app.estimates[0]?.estimated_kwh || 0,
+        }))
+        .sort((a, b) => b.consumption - a.consumption) || [];
+    const efficiencyData =
+      billData.user_appliances?.map((app) => ({
+        name: app.custom_name,
+        wattage: app.custom_wattage,
+        consumption: app.estimates[0]?.estimated_kwh || 0,
+      })) || [];
+    const ageVsConsumptionData =
+      billData.user_appliances?.map((app) => ({
+        name: app.custom_name,
+        year: app.purchase_year,
+        consumption: app.estimates[0]?.estimated_kwh || 0,
+      })) || [];
+    const chartsData = {
+      billBreakdownData,
+      applianceConsumptionData,
+      efficiencyData,
+      ageVsConsumptionData,
+    };
+
+    return { metrics: metricsData, chartsData };
+  }, [billData]);
+
+  const renderMetricCards = () => {
+    if (isLoading) {
+      return [...Array(4)].map((_, i) => (
+        <div
+          key={i}
+          className="h-44 bg-gray-200 rounded-xl animate-pulse"
+        ></div>
+      ));
+    }
+    if (isError) {
+      return (
+        <div className="md:col-span-2 lg:col-span-4 text-center text-red-500">
+          Failed to load bill data.
+        </div>
+      );
+    }
+    if (!selectedBill) {
+      return (
+        <div className="md:col-span-2 lg:col-span-4 text-center p-10 bg-gray-50 rounded-lg">
+          <FileText className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700">Select a Bill</h3>
+          <p className="text-gray-500">
+            Choose a billing period above to see your overview.
+          </p>
+        </div>
+      );
+    }
+    if (metrics) {
+      return (
+        <>
+          <MetricCard
+            title={metrics.totalBill.title}
+            value={metrics.totalBill.value}
+            change={metrics.totalBill.change}
+            changeType="neutral"
+            subtitle={metrics.totalBill.subtitle}
+            icon={DollarSign}
+          />
+          <MetricCard
+            title="Highest Consumer"
+            value={metrics.highestConsumer.value}
+            change={metrics.highestConsumer.change}
+            changeType="increase"
+            subtitle={metrics.highestConsumer.subtitle}
+            icon={BarChart3}
+          />
+          <MetricCard
+            title="Daily Average"
+            value={metrics.dailyAverage.value}
+            change={metrics.dailyAverage.change}
+            changeType="neutral"
+            subtitle={metrics.dailyAverage.subtitle}
+            icon={Activity}
+          />
+          <MetricCard
+            title="Carbon Footprint"
+            value={metrics.carbonFootprint.value}
+            change={metrics.carbonFootprint.change}
+            changeType="decrease"
+            subtitle={metrics.carbonFootprint.subtitle}
+            icon={Leaf}
+          />
+        </>
+      );
+    }
+    return null;
+  };
+  const renderQuickInsights = () => {
+    if (isLoading || isError || !metrics?.quickInsights) {
+      return [...Array(3)].map((_, i) => (
+        <Card
+          key={i}
+          className="h-28 bg-gray-200 animate-pulse border-none"
+        ></Card>
+      ));
+    }
+    return metrics.quickInsights.map((insight, index) => (
+      <InsightCard key={index} {...insight} />
+    ));
+  };
+
+  const renderCharts = () => {
+    if (isLoading) {
+      return [...Array(4)].map((_, i) => (
+        <div
+          key={i}
+          className="h-96 bg-gray-200 rounded-xl animate-pulse"
+        ></div>
+      ));
+    }
+    if (isError || !metrics) {
+      return null; // Don't show charts if there's an error or no data
+    }
+
+    const {
+      billBreakdownData,
+      applianceConsumptionData,
+      efficiencyData,
+      ageVsConsumptionData,
+    } = chartsData;
+
+    return (
+      <>
+        <ChartCard
+          title="Bill Cost Breakdown"
+          description="Distribution of charges for the selected month"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={billBreakdownData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={110}
+                paddingAngle={3}
+                dataKey="value"
+                nameKey="name"
+              >
+                {billBreakdownData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value) => [`₹${value.toFixed(2)}`, "Amount"]}
+              />
+              <Legend iconType="circle" />
+            </PieChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard
+          title="Appliance Consumption (kWh)"
+          description="Energy usage per appliance for this bill"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={applianceConsumptionData}
+              margin={{ top: 20, right: 20, left: -10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#64748b", fontSize: 12 }} />
+              <Tooltip
+                formatter={(value) => [
+                  `${value.toFixed(2)} kWh`,
+                  "Consumption",
+                ]}
+              />
+              <Bar dataKey="consumption" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard
+          title="Appliance Efficiency Matrix"
+          description="Consumption (kWh) vs. Power (Wattage)"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart
+              margin={{ top: 20, right: 20, bottom: 20, left: -10 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis
+                type="number"
+                dataKey="wattage"
+                name="Power"
+                unit="W"
+                tick={{ fill: "#64748b", fontSize: 12 }}
+              />
+              <YAxis
+                type="number"
+                dataKey="consumption"
+                name="Consumption"
+                unit="kWh"
+                tick={{ fill: "#64748b", fontSize: 12 }}
+              />
+              <ZAxis dataKey="name" name="Appliance" />
+              <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+              <Scatter name="Appliances" data={efficiencyData} fill="#10b981" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard
+          title="Appliance Age vs. Consumption"
+          description="Does older equipment use more energy?"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart
+              margin={{ top: 20, right: 20, bottom: 20, left: -10 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis
+                type="number"
+                dataKey="year"
+                name="Purchase Year"
+                tick={{ fill: "#64748b", fontSize: 12 }}
+                domain={["dataMin - 1", "dataMax + 1"]}
+              />
+              <YAxis
+                type="number"
+                dataKey="consumption"
+                name="Consumption"
+                unit="kWh"
+                tick={{ fill: "#64748b", fontSize: 12 }}
+              />
+              <ZAxis dataKey="name" name="Appliance" />
+              <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+              <Scatter
+                name="Appliances"
+                data={ageVsConsumptionData}
+                fill="#f97316"
+              />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-gray-50 p-8">
@@ -469,32 +525,6 @@ const Overview = () => {
               </div>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white/80 backdrop-blur-sm hover:bg-white"
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Last 6 months
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white/80 backdrop-blur-sm hover:bg-white"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Export Data
-            </Button>
-            <Button
-              size="sm"
-              className="bg-primary-500 hover:bg-primary-600 text-white"
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Detailed Report
-            </Button>
-          </div>
         </div>
         <div className="mb-4 ">
           <BillSelector
@@ -504,265 +534,18 @@ const Overview = () => {
         </div>
         {/* Quick Insights Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {insights.map((insight, index) => (
-            <Card
-              key={index}
-              className={`${insight.color} border hover:shadow-md transition-all duration-300`}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-white rounded-lg">
-                    <insight.icon className="w-4 h-4 text-gray-700" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900 mb-1">
-                      {insight.title}
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {insight.description}
-                    </p>
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="p-0 h-auto text-primary-600 hover:text-primary-700"
-                    >
-                      {insight.action} →
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {renderQuickInsights()}
         </div>
       </div>
 
       {/* Enhanced Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <MetricCard
-          title="Current Month"
-          value="₹2,456"
-          change="+12%"
-          changeType="increase"
-          subtitle="450 kWh consumed"
-          icon={DollarSign}
-          trend={75}
-        />
-        <MetricCard
-          title="Previous Month"
-          value="₹2,190"
-          change="-8%"
-          changeType="decrease"
-          subtitle="380 kWh consumed"
-          icon={BarChart3}
-          trend={65}
-        />
-        <MetricCard
-          title="Daily Average"
-          value="₹79"
-          change="14.5 kWh"
-          changeType="neutral"
-          subtitle="Slightly above normal"
-          icon={Activity}
-          trend={82}
-        />
-        <MetricCard
-          title="Carbon Footprint"
-          value="180 kg"
-          change="-15%"
-          changeType="decrease"
-          subtitle="CO₂ emissions saved"
-          icon={Leaf}
-          trend={45}
-        />
+        {renderMetricCards()}
       </div>
 
       {/* Enhanced Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-        <ChartCard
-          title="6-Month Consumption Trend"
-          description="Monthly usage vs target comparison"
-          action="View Details"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={monthlyData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis
-                dataKey="month"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#64748b", fontSize: 12 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#64748b", fontSize: 12 }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "rgba(255, 255, 255, 0.95)",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <Bar
-                dataKey="target"
-                fill="#e2e8f0"
-                radius={[2, 2, 0, 0]}
-                name="Target"
-              />
-              <Bar
-                dataKey="consumption"
-                fill="#22c55e"
-                radius={[4, 4, 0, 0]}
-                name="Actual"
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Bill Breakdown"
-          description="Current month cost distribution"
-          action="Breakdown"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={billBreakdown}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {billBreakdown.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "rgba(255, 255, 255, 0.95)",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                }}
-                formatter={(value) => [`₹${value}`, "Amount"]}
-              />
-              <Legend verticalAlign="bottom" height={36} iconType="circle" />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="Weekly Usage Pattern"
-          description="Daily consumption with peak indicators"
-          action="Optimize"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={dailyUsage}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis
-                dataKey="day"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#64748b", fontSize: 12 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#64748b", fontSize: 12 }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "rgba(255, 255, 255, 0.95)",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="usage"
-                stroke="#22c55e"
-                strokeWidth={3}
-                dot={{ fill: "#22c55e", strokeWidth: 2, r: 4 }}
-                name="Average Usage"
-              />
-              <Line
-                type="monotone"
-                dataKey="peak"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                strokeDasharray="8 8"
-                dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
-                name="Peak Usage"
-              />
-              <Legend />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        <ChartCard
-          title="24-Hour Consumption"
-          description="Hourly usage pattern analysis"
-          action="Schedule"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={hourlyPattern}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis
-                dataKey="hour"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#64748b", fontSize: 12 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#64748b", fontSize: 12 }}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "rgba(255, 255, 255, 0.95)",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                }}
-                formatter={(value) => [`${value} kWh`, "Consumption"]}
-              />
-              <Area
-                type="monotone"
-                dataKey="consumption"
-                stroke="#3b82f6"
-                fill="url(#colorConsumption)"
-                strokeWidth={2}
-              />
-              <defs>
-                <linearGradient
-                  id="colorConsumption"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        {renderCharts()}
       </div>
 
       {/* Enhanced Quick Actions & Recommendations */}
@@ -772,90 +555,45 @@ const Overview = () => {
             <div className="p-2 bg-primary-100 rounded-lg">
               <Zap className="w-5 h-5 text-primary-600" />
             </div>
-            Smart Recommendations
+            Quick Actions
           </CardTitle>
           <CardDescription>
-            AI-powered insights to optimize your energy consumption
+            AI-powered recommendations to optimize your energy consumption
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="p-6 bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl border border-primary-200">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-primary-500 rounded-lg">
-                  <TrendingDown className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    Reduce Peak Usage
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Your AC usage peaks at 8 PM. Consider pre-cooling at 6 PM
-                    for better rates.
-                  </p>
-                  <Badge className="bg-primary-500 text-white">
-                    Save ₹400/month
-                  </Badge>
-                  <Button
-                    size="sm"
-                    className="mt-3 bg-primary-500 hover:bg-primary-600 text-white"
-                  >
-                    Set Schedule
-                  </Button>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-gradient-subtle rounded-lg border border-primary-100">
+              <h4 className="font-medium text-gray-900 mb-2">
+                Update Appliance Usage
+              </h4>
+              <p className="text-sm text-gray-600 mb-3">
+                Your Appliance usage seems higher this month
+              </p>
+              <Link to="appliances">
+                <Button
+                  size="sm"
+                  className="bg-primary-500 hover:bg-primary-600"
+                >
+                  Review Appliances
+                </Button>
+              </Link>
             </div>
-
-            <div className="p-6 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-green-500 rounded-lg">
-                  <Leaf className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    Solar Opportunity
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Based on your usage, solar panels could cover 70% of your
-                    consumption.
-                  </p>
-                  <Badge className="bg-green-500 text-white">
-                    ROI in 3.2 years
-                  </Badge>
-                  <Button
-                    size="sm"
-                    className="mt-3 bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    Get Quote
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-500 rounded-lg">
-                  <Target className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    Smart Appliances
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Upgrade to 5-star rated appliances to reduce consumption by
-                    25%.
-                  </p>
-                  <Badge className="bg-blue-500 text-white">
-                    Long-term savings
-                  </Badge>
-                  <Button
-                    size="sm"
-                    className="mt-3 bg-blue-500 hover:bg-blue-600 text-white"
-                  >
-                    View Options
-                  </Button>
-                </div>
-              </div>
+            <div className="p-4 bg-gradient-subtle rounded-lg border border-primary-100">
+              <h4 className="font-medium text-gray-900 mb-2">
+                Potential Savings
+              </h4>
+              <p className="text-sm text-gray-600 mb-3">
+                You could save upto ₹300/month with these tips
+              </p>
+              <Link to="insights">
+                <Button
+                  size="sm"
+                  className="bg-primary-500 hover:bg-primary-600"
+                >
+                  View Insights
+                </Button>
+              </Link>
             </div>
           </div>
         </CardContent>

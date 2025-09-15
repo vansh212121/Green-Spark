@@ -54,7 +54,7 @@ import { useTriggerBillEstimationMutation } from "@/features/api/billApi";
 
 const Appliances = () => {
   const [showSurvey, setShowSurvey] = useState(false);
-  const [hasSurveyData, setHasSurveyData] = useState(true); 
+  const [hasSurveyData, setHasSurveyData] = useState(true);
   const [selectedBill, setSelectedBill] = useState(null);
   const [showEstimates, setShowEstimates] = useState(true);
   const [selectedAppliance, setSelectedAppliance] = useState(null);
@@ -278,13 +278,6 @@ const Appliances = () => {
                   Detailed breakdown of energy consumption by device
                 </p>
               </div>
-              <Button
-                variant="outline"
-                className="border-blue-200 text-blue-600 hover:bg-blue-50"
-              >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                View All Analytics
-              </Button>
             </div>
 
             {isLoading ? (

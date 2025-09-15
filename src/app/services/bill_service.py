@@ -110,7 +110,7 @@ class BillService:
         # Fine-grained authorization check
         if current_user.is_admin:
             return bill
-        is_not_self = current_user.id != bill.user_id
+        is_not_self = str(current_user.id) != str(bill.user_id)
 
         raise_for_status(
             condition=(is_not_self),
