@@ -307,6 +307,36 @@ class UserApplianceRepository(BaseRepository[UserAppliance]):
         result = await db.execute(statement)
         return result.scalars().all()
 
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
+    async def get_estimate_by_appliance_id(
+        self, db: AsyncSession, *, appliance_id: uuid.UUID
+    ) -> Optional[ApplianceEstimate]:
+        """Fetch estimate by it's appliance ID"""
+
+        statement = select(ApplianceEstimate).where(
+            ApplianceEstimate.user_appliance_id == appliance_id
+        )
+        result = await db.execute(statement)
+        return result.scalar_one_or_none()
+
+    @handle_exceptions(
+        default_exception=InternalServerError,
+        message="An unexpected database error occurred.",
+    )
+    async def delete_estimate(
+        self, db: AsyncSession, *, estimate_id: uuid.UUID
+    ) -> None:
+        """delete an estimate"""
+
+        statement = delete(ApplianceEstimate).where(ApplianceEstimate.id == estimate_id)
+        await db.execute(statement)
+        await db.commit()
+        self._logger.info(f"ApplianceEstimate hard deleted: {estimate_id}")
+        return
+
     # ==================== HELPER METHODS ====================
     @handle_exceptions(
         default_exception=InternalServerError,

@@ -1,7 +1,7 @@
 import logging
 
 from typing import Dict
-from fastapi import APIRouter, Depends, status, Query, Request
+from fastapi import APIRouter, Depends, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -138,7 +138,7 @@ async def admin_login(
 # ===========Logout========
 @router.post(
     "/logout",
-    status_code=status.HTTP_204_NO_CONTENT,  # 204 is perfect for a successful action with no response body
+    status_code=status.HTTP_204_NO_CONTENT, 
     summary="User Logout",
 )
 async def logout_user(

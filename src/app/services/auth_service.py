@@ -135,13 +135,10 @@ class AuthService:
             raise InvalidCredentials(detail="User not found or inactive.")
 
         # 3. Revoke the old refresh token (one-time use)
-        #    Revoke the old refresh token and ensure the operation was successful.
         revoked_successfully = await token_manager.revoke_token(
             refresh_token, reason="Token refreshed"
         )
 
-        # If the revocation fails, we must not issue a new token.
-        # This is a critical security backstop.
         if not revoked_successfully:
             raise InternalServerError(
                 detail="Could not refresh token. Please try logging in again."
@@ -171,7 +168,6 @@ class AuthService:
             user=user,
             fields_to_update={"tokens_valid_from_utc": datetime.now(timezone.utc)},
         )
-        # Important: Invalidate the cache so the next fetch gets the new timestamp
         await cache_service.invalidate(User, user.id)
         self._logger.info(f"All tokens revoked for user {user.id}")
 
@@ -205,7 +201,6 @@ class AuthService:
         self,
         db: AsyncSession,
         *,
-        background_tasks: Optional[BackgroundTasks] = None,
         email: str,
     ) -> Dict[str, str]:
         """
@@ -325,9 +320,7 @@ class AuthService:
         if not user or not user.is_active:
             raise InvalidToken(detail="Invalid token or user is inactive.")
 
-        # 3. ** THE FIX IS HERE **
-        #    Update the user's email. We do NOT change is_verified, because
-        #    clicking the link sent to the new email IS the verification.
+        # 3.   Update the user's email. We do NOT change is_verified, because clicking the link sent to the new email IS the verification.
         updated_user = await user_repository.update(
             db, user=user, fields_to_update={"email": new_email}
         )
@@ -373,7 +366,6 @@ class AuthService:
         Creates a verification token and dispatches the email-sending task.
         This is a public method that can be called by other services.
         """
-        # This reuses the logic from our private helper.
         await self._send_verification_email(user)
 
     # --- Private Helper Methods for Email Sending (Simulated) ---

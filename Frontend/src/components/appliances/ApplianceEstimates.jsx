@@ -161,7 +161,7 @@ export const ApplianceEstimates = ({ selectedBill, appliances }) => {
       );
     }
     if (isError || !chartData) {
-      return null; // Don't render charts if there's no data or an error
+      return null;
     }
     return (
       <>

@@ -8,7 +8,6 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # This correctly mounts your entire src directory
       - ./src:/app/src
       - ./scripts:/app/scripts
     # --- COMMAND CORRECTED to be aware of the 'src' layout ---
@@ -55,7 +54,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432" # Changed local port to avoid conflicts
+      - "5433:5432"
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]

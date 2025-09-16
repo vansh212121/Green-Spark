@@ -205,29 +205,6 @@ class AIService:
         Do not include explanatory text, markdown formatting, or conversational notes.
         """
 
-    # def parse_bill_with_gemini(
-    #     self, file_path: str, mime_type: str
-    # ) -> NormalizedBillSchema:
-    #     """Takes a local file path to an image/pdf, sends it to Gemini, and returns a validated Pydantic schema object."""
-    #     logger.info(f"Sending file to Gemini for parsing: {file_path}")
-    #     with open(file_path, "rb") as f:
-    #         file_bytes = f.read()
-
-    #     file_part = {"mime_type": mime_type, "data": file_bytes}
-
-    #     try:
-    #         # Use the specific prompt for parsing
-    #         response = self.model.generate_content([self.parser_prompt, file_part])
-    #         response_json = json.loads(response.text)
-
-    #         # Validate the AI's output against our strict schema before returning
-    #         return NormalizedBillSchema.model_validate(response_json)
-    #     except Exception as e:
-    #         logger.error(
-    #             f"Gemini parsing or validation failed. Response text: {getattr(response, 'text', 'No response text available')}",
-    #             exc_info=True,
-    #         )
-    #         raise ValueError("Failed to parse bill from AI response.") from e
     def parse_bill_with_gemini(
         self, file_path: str, mime_type: str
     ) -> NormalizedBillSchema:
@@ -263,7 +240,6 @@ class AIService:
                     "due_date": normalize(period.get("due_date")),
                 }
 
-            # ✅ clean dict goes into schema
             return NormalizedBillSchema(**response_json)
 
         except Exception as e:

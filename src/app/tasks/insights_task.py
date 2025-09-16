@@ -1,17 +1,18 @@
-# app/tasks/insight_tasks.py
-
 import logging
 import uuid
 import asyncio
 from datetime import datetime
 
 from src.app.core.celery_app import celery_app
-from src.app.db.session import db
+
 from src.app.crud.insights_crud import insights_repository
 from src.app.models.insights_model import InsightStatus
-from src.app.schemas.bill_schema import BillResponse, BillDetailedResponse
+from src.app.schemas.bill_schema import BillDetailedResponse
 from src.app.services.ai_service import ai_service
 from src.app.services.bill_service import bill_service
+
+from src.app.db.session import Database
+from src.app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,12 @@ def generate_insights_task(bill_id: str, user_id: str):
         bill_uuid = uuid.UUID(bill_id)
         user_uuid = uuid.UUID(user_id)
 
-        async with db.session_context() as session:
+        # --- THE FIX: Create a NEW, LOCAL Database instance for this task run ---
+        local_db = Database(str(settings.DATABASE_URL))
+        await local_db.connect()
+        async with local_db.session_context() as session:
             try:
+                # YOUR EXISTING LOGIC IS PRESERVED HERE
                 insight = await insights_repository.get(db=session, bill_id=bill_uuid)
                 if not insight:
                     logger.error(
@@ -44,20 +49,17 @@ def generate_insights_task(bill_id: str, user_id: str):
                     order_desc=True,
                     filters=None,
                 )
-
                 all_bills = bill_list_response.items
-
                 if not all_bills:
                     raise ValueError("No bills found for user to generate insights.")
 
-                # Find the current bill
+                # Find the current and previous bills
                 current_bill = next((b for b in all_bills if b.id == bill_uuid), None)
                 if not current_bill:
                     raise ValueError(
                         f"Current bill {bill_uuid} not found in user's bill list."
                     )
 
-                # Find the previous bill (one before current, by billing_period_start order)
                 prev_bill = None
                 for idx, bill in enumerate(all_bills):
                     if bill.id == bill_uuid and idx + 1 < len(all_bills):
@@ -78,10 +80,10 @@ def generate_insights_task(bill_id: str, user_id: str):
                     ),
                 }
 
-                # 3. Call the AI service to get the final, validated Pydantic object
+                # 3. Call the AI service
                 validated_report = ai_service.generate_insights_from_context(context)
 
-                # 4. Update the insight record with the result
+                # 4. Update the insight record
                 insight.structured_data = validated_report.model_dump(mode="json")
                 insight.status = InsightStatus.COMPLETED
                 insight.generated_at = datetime.utcnow()
@@ -96,13 +98,18 @@ def generate_insights_task(bill_id: str, user_id: str):
                     f"Failed to generate insights for bill {bill_id}: {e}",
                     exc_info=True,
                 )
-                async with db.session_context() as error_session:
-                    insight = await insights_repository.get(
-                        db=error_session, bill_id=uuid.UUID(bill_id)
-                    )
-                    if insight:
-                        insight.status = InsightStatus.FAILED
-                        error_session.add(insight)
-                        await error_session.commit()
+                # We can reuse the same session to update the status on failure
+                insight_to_fail = await insights_repository.get(
+                    db=session, bill_id=bill_uuid
+                )
+                if insight_to_fail:
+                    insight_to_fail.status = InsightStatus.FAILED
+                    session.add(insight_to_fail)
+                    await session.commit()
+            finally:
+                # --- CRITICAL: Always disconnect from the database when done ---
+                await local_db.disconnect()
+                logger.info("Insight task finished, DB connection closed.")
 
+    # Run the self-contained async main function, just like in estimation_tasks.py
     asyncio.run(main())

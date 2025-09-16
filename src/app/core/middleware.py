@@ -278,10 +278,6 @@ class SecurityHeadersMiddleware:
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(raw=message.setdefault("headers", []))
 
-                # ✅ preserve CORS headers set earlier
-                # (they will already exist here if CORSMiddleware added them)
-
-                # Add your own security headers without nuking others
                 for k, v in SecurityHeaders.get_headers().items():
                     if k not in headers:  # don't overwrite
                         headers[k] = v

@@ -14,7 +14,7 @@ import { Plus, Trash2, Home } from "lucide-react";
 import {
   useGetApplianceCatalogQuery,
   useCreateApplianceMutation,
-} from "@/features/api/applianceApi"; // RTK query
+} from "@/features/api/applianceApi"; 
 import { toast } from "sonner";
 
 const STAR_RATINGS = [
@@ -32,8 +32,8 @@ export const ApplianceSurvey = ({
   applianceToEdit = null,
 }) => {
   const mapApplianceToForm = (appl) => ({
-    id: appl.id || appl.appliance_id || Date.now().toString(), // local key
-    appliance_id: appl.id || appl.appliance_id || null, // this is for API
+    id: appl.id || appl.appliance_id || Date.now().toString(),
+    appliance_id: appl.id || appl.appliance_id || null, 
     type: appl.appliance_catalog_id || "",
     customName: appl.custom_name || "",
     brand: appl.brand || "",

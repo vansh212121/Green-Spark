@@ -79,9 +79,15 @@ class Bill(BillBase, table=True):
 
     # RELATIONSHIPS
     user: "User" = Relationship(back_populates="bills")
-    user_appliances: List["UserAppliance"] = Relationship(back_populates="bill")
-    estimates: List["ApplianceEstimate"] = Relationship(back_populates="bill")
-    insight: Optional["Insight"] = Relationship(back_populates="bill")
+    user_appliances: List["UserAppliance"] = Relationship(
+        back_populates="bill"
+    )
+    estimates: List["ApplianceEstimate"] = Relationship(
+        back_populates="bill"
+    )
+    insight: Optional["Insight"] = Relationship(
+        back_populates="bill"
+    )
 
     def __repr__(self):
         return f"<Bill(id='{self.id}, user_id='{self.user_id}')>"

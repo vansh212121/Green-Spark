@@ -3,10 +3,8 @@
 import logging
 import uuid
 import asyncio
-from typing import List
 
 from src.app.core.celery_app import celery_app
-from src.app.db.session import db
 from src.app.crud.appliance_crud import appliance_repository
 from src.app.crud.bill_crud import bill_repository
 from src.app.models.bill_model import Bill
@@ -16,7 +14,6 @@ from src.app.db.session import Database
 from src.app.tasks.insights_task import generate_insights_task
 
 logger = logging.getLogger(__name__)
-
 
 async def _perform_estimation_for_bill(session, bill: Bill):
     """

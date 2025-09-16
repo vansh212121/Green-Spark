@@ -76,9 +76,6 @@ class InsightRecommendation(BaseModel):
         return v
 
 
-# --- The Main V1 Response Schema ---
-
-
 class InsightResponse(BaseModel):
     """
     The response schema for a completed Insight Report.

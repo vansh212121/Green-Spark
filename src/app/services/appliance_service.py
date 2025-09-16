@@ -7,7 +7,7 @@ handling authorization, validation, and orchestrating repository calls.
 """
 import uuid
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, List
 from datetime import datetime, timezone
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -430,6 +430,20 @@ class ApplianceService:
             raise NotAuthorized(
                 f"Appliance {appliance_id} does not belong to bill {bill_id}."
             )
+
+        self._logger.info(
+            f"Deleting estimates associated with appliance {appliance_id}"
+        )
+
+        estimates_to_delete = (
+            await self.appliance_repository.get_estimate_by_appliance_id(
+                db=db, appliance_id=appliance_id
+            )
+        )
+
+        await self.appliance_repository.delete_estimate(
+            db=db, estimate_id=estimates_to_delete.id
+        )
 
         # 4. Perform the deletion
         await self.appliance_repository.delete(db=db, obj_id=appliance_id)

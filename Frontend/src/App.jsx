@@ -14,7 +14,6 @@ import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import VerifyEmailPage from "./components/auth/VerifyEmailPage";
 import { appStore } from "./redux/store";
 import ConfirmEmailChangePage from "./components/auth/ConfirmEmailChangePage";
-import PersistLogin from "./components/auth/PersistLogin";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const App = () => (

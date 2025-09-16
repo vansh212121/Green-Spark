@@ -239,5 +239,4 @@ class InsightService:
         return InsightStatusResponse(bill_id=bill_id, status=insight.status)
 
 
-# Singleton instance
 insight_service = InsightService()

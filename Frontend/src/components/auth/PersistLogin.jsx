@@ -3,7 +3,6 @@ import { useSelector } from "react-redux";
 import { Outlet } from "react-router-dom";
 import { selectAccessToken } from "@/features/authSlice";
 import { useGetMeQuery } from "@/features/api/userApi";
-// import { useGetMeQuery } from "@/features/api/authApi";
 
 const PersistLogin = () => {
   const accessToken = useSelector(selectAccessToken);

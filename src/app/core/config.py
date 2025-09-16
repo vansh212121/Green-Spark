@@ -1,5 +1,5 @@
 # app/core/config.py
-from pydantic import PostgresDsn, EmailStr, computed_field
+from pydantic import PostgresDsn, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

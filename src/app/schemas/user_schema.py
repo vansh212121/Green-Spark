@@ -14,6 +14,7 @@ from pydantic import (
 from src.app.core.exceptions import ValidationError
 from src.app.models.user_model import UserRole
 
+
 class UserBase(BaseModel):
     first_name: str = Field(
         ...,
@@ -159,10 +160,6 @@ class UserResponse(UserBase):
     updated_at: datetime = Field(..., description="Last update timestamp")
 
 
-# USER DETAILED RESPONSE WIHT NESTING COMES LATER HERE
-
-
-
 # ======== List and Search Schemas =========
 class UserListResponse(BaseModel):
     """Response for paginated user list."""
@@ -212,7 +209,6 @@ class UserSearchParams(BaseModel):
             if self.created_after > self.created_before:
                 raise ValidationError("created_after must be before created_before")
         return self
-
 
 
 __all__ = [

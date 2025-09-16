@@ -18,7 +18,7 @@ def send_password_reset_email_task(email_to: str, token: str):
         logger.error(
             f"Failed to send password reset email to {email_to}: {e}", exc_info=True
         )
-        # Celery will automatically retry the task based on its configuration if it fails.
+
 
 
 @celery_app.task

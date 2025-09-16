@@ -91,5 +91,4 @@ class RateLimitService:
             logger.error("Failed to clear auth attempts.", exc_info=True)
 
 
-# Singleton instance
 rate_limit_service = RateLimitService()

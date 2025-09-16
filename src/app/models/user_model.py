@@ -94,8 +94,6 @@ class User(UserBase, table=True):
     # --- Computed properties (data-focused) ---
     @property
     def is_admin(self) -> bool:
-        # By wrapping self.role in UserRole(), we ensure we are always
-        # comparing an enum to an enum, even if self.role is a plain string.
         return UserRole(self.role) == UserRole.ADMIN
 
     def __repr__(self) -> str:

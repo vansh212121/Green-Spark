@@ -1,13 +1,11 @@
 import logging
 import secrets
-import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from jose import jwt, JWTError
-from jose.exceptions import ExpiredSignatureError
 from passlib.context import CryptContext
 
 from src.app.core.config import settings

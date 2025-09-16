@@ -278,8 +278,8 @@ class BillService:
             file_uri=confirm_data.file_uri,
             source_type=BillSource.PDF,
             parse_status=BillStatus.PROCESSING,
-            billing_period_start=date(1970, 1, 1),  # Corrected: use date object
-            billing_period_end=date(1970, 2, 2),  # Corrected: use date object
+            billing_period_start=date(1970, 1, 1),  
+            billing_period_end=date(1970, 2, 2),  
             kwh_total=10,
             cost_total=10,
             provider="Pending Parse",
@@ -319,7 +319,6 @@ class BillService:
             "cost_total": parsed_data.totals.get("cost"),
             "normalized_json": parsed_data.model_dump(),
             "parser_version": parsed_data.version,
-            # "checksum": ... # The worker would calculate and pass this in
         }
 
         # 3. Call the repository to save the changes
@@ -327,13 +326,10 @@ class BillService:
             db=db, bill=bill_to_update, fields_to_update=update_data
         )
 
-        # 4. CRITICAL: Invalidate the cache for this bill
+        # 4.Invalidate the cache for this bill
         await cache_service.invalidate(BillResponse, updated_bill.id)
 
         self._logger.info(f"Successfully parsed and updated bill: {bill_id}")
-
-        # 5. Trigger the next step in the pipeline
-        # estimate_appliances_task.delay(updated_bill.id)
 
         return updated_bill
 

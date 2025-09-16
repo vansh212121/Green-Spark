@@ -83,15 +83,9 @@ class UserService:
         A simplified user retrieval method for authentication purposes, using a
         cache-aside pattern.
         """
-
-        # Define the function that will be called ONLY on a cache miss.
-        # This is our "loader".
         async def _loader() -> Optional[User]:
             return await self.user_repository.get(db=db, obj_id=user_id)
 
-        # Use get_or_set to handle all the cache logic in one line.
-        # It will try to get User by user_id. If not found, it will call _loader,
-        # cache the result, and then return it.
         user = await cache_service.get_or_set(
             schema_type=User,
             obj_id=user_id,
@@ -471,7 +465,6 @@ class UserService:
 
         # 5. Clean up cache and tokens
         await cache_service.invalidate(User, user_id_to_delete)
-        # TODO: Add token revocation logic here
 
         self._logger.warning(
             f"User {user_id_to_delete} permanently deleted by {current_user.id}",

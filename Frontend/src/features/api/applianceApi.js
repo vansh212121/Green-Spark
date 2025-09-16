@@ -3,7 +3,6 @@ import { baseQueryWithReauth } from "@/redux/baseQueryWithReauth";
 
 export const applianceApi = createApi({
     reducerPath: "applianceApi",
-    // Define tags for caching. The 'ApplianceList' tag is ID-based to differentiate lists for different bills.
     tagTypes: ['ApplianceList', 'ApplianceCatalog', 'Estimates'],
     baseQuery: baseQueryWithReauth,
     endpoints: (builder) => ({

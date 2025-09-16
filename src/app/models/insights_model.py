@@ -29,19 +29,20 @@ class InsightBase(SQLModel):
     # This field stores the entire, rich JSON payload for the Smart Insights page.
     structured_data: Dict[str, Any] = Field(sa_column=Column(JSONB), default=None)
 
+
 class Insight(InsightBase, table=True):
     __tablename__ = "insights"
 
     id: uuid.UUID = Field(
-            default_factory=uuid.uuid4,
-            sa_column=Column(
-                PG_UUID(as_uuid=True),
-                server_default=func.gen_random_uuid(),
-                primary_key=True,
-                index=True,
-                nullable=False,
-            ),
-        )
+        default_factory=uuid.uuid4,
+        sa_column=Column(
+            PG_UUID(as_uuid=True),
+            server_default=func.gen_random_uuid(),
+            primary_key=True,
+            index=True,
+            nullable=False,
+        ),
+    )
     # A bill should only ever have one insight record.
     bill_id: uuid.UUID = Field(
         foreign_key="bills.id", index=True, unique=True, nullable=False

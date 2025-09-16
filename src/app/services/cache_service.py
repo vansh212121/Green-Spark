@@ -45,13 +45,9 @@ class CacheService:
         namespace: Optional[str] = None,
         version: Optional[str] = None,
         *,
-        # Map a schema class to the ordered PK field names (e.g., {UserRead: ("id",), TeamMemberRead: ("team_id","user_id")})
         pk_field_map: Optional[Dict[Type[BaseModel], Tuple[str, ...]]] = None,
-        # Per-model TTL overrides (falls back to ttl above)
         ttl_overrides: Optional[Dict[Type[BaseModel], int]] = None,
-        # If True, require pk_field_map entries for any schema without an `id` field
         strict_pk_resolution: bool = False,
-        # Dump options propagated to model_dump_json
         dump_by_alias: bool = False,
         dump_exclude_none: bool = False,
         validate_strict: bool = False,
@@ -309,5 +305,4 @@ class CacheService:
         return await self.get_json(schema_type, obj_id) if return_json else obj
 
 
-# Create a single, reusable instance for the rest of the application
 cache_service = CacheService()
