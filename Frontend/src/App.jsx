@@ -9,12 +9,13 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { Toaster } from "sonner";
 import { Provider } from "react-redux";
-
 import AuthPage from "./components/auth/AuthPage";
 import ResetPasswordPage from "./components/auth/ResetPasswordPage";
 import VerifyEmailPage from "./components/auth/VerifyEmailPage";
 import { appStore } from "./redux/store";
 import ConfirmEmailChangePage from "./components/auth/ConfirmEmailChangePage";
+import PersistLogin from "./components/auth/PersistLogin";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const App = () => (
   <Provider store={appStore}>
@@ -22,12 +23,14 @@ const App = () => (
       <Toaster />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Overview />} />
-            <Route path="bills" element={<Bills />} />
-            <Route path="appliances" element={<Appliances />} />
-            <Route path="insights" element={<Insights />} />
-            <Route path="settings" element={<Settings />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Overview />} />
+              <Route path="bills" element={<Bills />} />
+              <Route path="appliances" element={<Appliances />} />
+              <Route path="insights" element={<Insights />} />
+              <Route path="settings" element={<Settings />} />
+            </Route>
           </Route>
           <Route path="auth" element={<AuthPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
