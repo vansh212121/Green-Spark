@@ -411,6 +411,75 @@ npm run dev
 
 **🌐 Frontend URL:** `http://localhost:5173`
 
+````markdown
+## ⚙️ **Environment Configuration**
+
+### **Backend Environment Variables (.env)**
+
+Create a `.env` file in the `backend/` directory with the following template:
+
+```bash
+# --- PROJECT CONFIGURATION ---
+ENVIRONMENT=development
+ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ORIGINS=http://localhost:5173,http://localhost:8000
+FRONTEND_URL=http://localhost:3000
+
+# --- DATABASE CONFIGURATION ---
+POSTGRES_USER=greenspark
+POSTGRES_PASSWORD=supersecretpassword
+POSTGRES_DB=greenspark_db
+
+# --- REDIS CONFIGURATION ---
+REDIS_URL=redis://redis:6379/0
+
+# --- MINIO (S3-COMPATIBLE STORAGE) ---
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=yoursupersecretminiopassword
+S3_ACCESS_KEY_ID=minioadmin
+S3_SECRET_ACCESS_KEY=yoursupersecretminiopassword
+S3_BUCKET_NAME=greenspark-bills
+
+# --- SECURITY ---
+JWT_SECRET=acsibiusbsabbsyubxsauybsaubasasubibxia
+
+# --- EMAIL CONFIGURATION ---
+# Using Gmail SMTP (configure with your credentials)
+MAIL_FROM_NAME=GreenSpark
+MAIL_FROM=your-email@gmail.com
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-specific-password
+MAIL_SERVER=smtp.gmail.com
+
+# --- AI INTEGRATION ---
+# Google Gemini API Key
+api_key=AIzaSyDVZO_V3ywfsiqa_Ya4L9PQ1NssPRcsOW8
+```
+````
+
+### **Frontend Environment Variables (.env.local)**
+
+Create a `.env.local` file in the `frontend/` directory:
+
+```bash
+# Backend API URL
+VITE_API_URL=http://localhost:8000/api/v1
+
+# App Configuration
+VITE_APP_NAME=GreenSpark
+VITE_APP_VERSION=1.0.0
+```
+
+### **🔐 Security Notes**
+
+- **🚨 Never commit real API keys or passwords to version control**
+- **🔑 Use environment-specific values for production**
+- **📧 For Gmail SMTP, use App-Specific Passwords, not your regular password**
+- **🔐 Generate strong, unique JWT secrets for production**
+- **🛡️ Consider using secret management services for production deployments**
+
+```
+
 ---
 
 ## 📝 **Development Guidelines**
@@ -482,3 +551,4 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 [![GitHub issues](https://img.shields.io/github/issues/vansh212121/Green-Spark)](https://github.com/vansh212121/Green-Spark/issues)
 
 </div>
+```
