@@ -412,9 +412,9 @@ npm run dev
 **🌐 Frontend URL:** `http://localhost:5173`
 
 ````markdown
-## ⚙️ **Environment Configuration**
+**⚙️ Environment Configuration**
 
-### **Backend Environment Variables (.env)**
+**Backend Environment Variables (.env)**
 
 Create a `.env` file in the `backend/` directory with the following template:
 
