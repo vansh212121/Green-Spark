@@ -1,436 +1,487 @@
-⚡ GreenSpark – Smart Energy Management Platform
+# ⚡ GreenSpark – Smart Energy Management Platform
 
-GreenSpark is a full-stack, AI-powered platform for energy management.
-It ingests user electricity bills, parses them with AI (Google Gemini), estimates appliance-level consumption, and generates actionable insights for smarter energy use.
+<div align="center">
 
-This project combines a robust FastAPI backend (with Celery, PostgreSQL, Redis, MinIO) and a modern React frontend (with Redux Toolkit, TailwindCSS, Recharts).
+![GreenSpark Logo](https://img.shields.io/badge/GreenSpark-⚡-brightgreen?style=for-the-badge)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=for-the-badge&logo=postgresql)](https://postgresql.org/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis)](https://redis.io/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-🌟 Features
+**AI-powered energy management platform that transforms your electricity bills into actionable insights**
 
-🔐 Secure Authentication → JWT auth, refresh token rotation, Redis blacklist, Argon2 password hashing.
-
-📂 Smart Bill Processing → Presigned S3 uploads, AI-based parsing, structured JSON validation.
-
-⚡ Appliance Estimation → Algorithmic breakdown of energy consumption.
-
-📊 AI Insights → Automated reports with energy-saving recommendations.
-
-🧩 Scalable Architecture → Dockerized, multi-container deployment.
-
-🚦 Rate Limiting & Caching → Redis-powered request throttling + performance caching.
-
-🎨 Modern Frontend → Responsive UI with charts, graphs, and real-time updates.
-
-🛠️ Tech Stack
-Backend
-
-Framework: FastAPI (async-first)
-
-ORM: SQLModel (Pydantic + SQLAlchemy)
-
-DB: PostgreSQL (with Alembic migrations)
-
-Async Tasks: Celery + Redis
-
-File Storage: MinIO (S3-compatible)
-
-AI: Google Gemini API
-
-Security: JWT (python-jose), Argon2 (passlib), RBAC, rate limiting
-
-Containerization: Docker & Docker Compose
-
-Dependency Management: Poetry
-
-Frontend
-
-Framework: React 18 + Vite
-
-State: Redux Toolkit + RTK Query
-
-UI: TailwindCSS, shadcn/ui, lucide-react
-
-Routing: React Router DOM
-
-Charts: Recharts
-
-Notifications: Sonner
-
-📐 Backend Architecture & Features
-🧱 Layered Design
-
-Routers (API Layer) → Handles requests, dependencies, and response validation.
-
-Services (Business Layer) → Encapsulates domain logic, coordinates repositories & tasks.
-
-Repositories (Data Layer) → Clean CRUD abstraction on top of SQLModel.
-
-## ⚙️ Dependency Injection
-
-The backend makes extensive use of **FastAPI’s `Depends()` pattern** to keep business logic clean, reusable, and testable.
-
-### 🔐 Authentication & User Context
-
-- `get_current_user` – validates JWT access tokens and attaches the current user to the request.
-- `get_current_active_user` – ensures the user is active.
-- `get_current_verified_user` – ensures the user’s email is verified.
-- `get_current_user_optional` – allows endpoints to gracefully handle both authenticated and anonymous users.
-
-**Features:**
-
-- JWT validation with revocation checks.
-- Automatic brute-force protection with **rate-limited authentication attempts**.
-- User context (`request.state.user`, `request.state.user_id`) available for logging and auditing.
-
-### 👮 Role-Based Access Control (RBAC)
-
-- `RoleChecker` dependency enforces role hierarchy (`USER`, `ADMIN`).
-- Prevents privilege escalation by comparing role priorities.
-- Preconfigured dependencies:
-
-  - `require_user` – requires at least `USER`.
-  - `require_admin` – requires `ADMIN`.
-
-### 🚦 Rate Limiting
-
-- `RateLimitChecker` dependency enforces request quotas per IP or per user.
-- Preconfigured limits:
-
-  - **Auth attempts** → 5/min (IP-based).
-  - **General API calls** → 35/min (per user).
-  - **Heavy endpoints** → 10/min (per user).
-  - **Refresh tokens** → 3/day (per user).
-
-### 🔎 Pagination, Search & Filtering
-
-- `PaginationParams` and `get_pagination_params` provide:
-
-  - `page`, `size`, `skip`, `limit` values.
-  - Enforced **maximum page size** (configurable via settings).
-
-- Consistent pagination across bills, appliances, and insights endpoints.
-- Flexible query support for search and filtering.
-
-### ⚡ Performance & Caching
-
-- **Redis-backed services** injected via dependencies:
-
-  - Token blacklist (secure logout/session invalidation).
-  - Request caching for frequently accessed queries.
-  - Distributed **rate limiting** (per IP or per user).
-
-### 🛠️ Utility Dependencies
-
-- `get_request_context` – extracts `client_ip`, `user_agent`, `path`, `method`, `request_id`, and `user_id`.
-- `get_health_status` – provides health check metadata (status, timestamp, version).
+</div>
 
 ---
 
-## 🛡️ Security
+## 🌟 **Overview**
 
-The backend includes a **comprehensive security framework** covering authentication, authorization, password management, token lifecycle, and secure headers.
-
-### 🔑 Authentication & Tokens
-
-- **JWT-based Authentication** with **access** and **refresh tokens**.
-- Token lifecycle fully managed by `TokenManager`.
-- Supports multiple token types:
-
-  - `ACCESS` – short-lived tokens for API calls.
-  - `REFRESH` – long-lived tokens to issue new access tokens.
-  - `EMAIL_VERIFICATION`, `PASSWORD_RESET`, `EMAIL_CHANGE`.
-
-- **Refresh Token Rotation**: old refresh tokens are revoked immediately after use.
-- **Blacklist / Revocation** (via Redis):
-
-  - Each JWT has a unique `jti` claim.
-  - Tokens can be revoked individually or in bulk.
-  - Fail-secure mode: if Redis is unavailable, token checks fail securely.
-
-- **Leeway Handling**: Configurable clock skew tolerance (`JWT_LEEWAY_SECONDS`).
-
-### 🔒 Password Management
-
-- Secure password hashing with **Argon2 (preferred)**, fallback to bcrypt.
-- Automatic rehashing if parameters become outdated (`needs_rehash`).
-- Transparent upgrades: verified passwords can be rehashed with stronger params without user disruption.
-- Constant-time comparison to mitigate timing attacks.
-
-### 👮 Authorization
-
-- **Role-Based Access Control (RBAC)** with a `RoleChecker` dependency.
-- Ensures only users with appropriate roles/permissions can access protected endpoints.
-
-### 🚫 Token Revocation
-
-- Tokens can be invalidated by:
-
-  - Explicit revocation (`revoke_token`).
-  - Revocation by `jti` when claims already parsed.
-
-- TTL (time-to-live) is automatically calculated from the token’s expiry.
-- Redis ensures **real-time token invalidation** across distributed systems.
-
-### 📜 Security Headers
-
-All API responses include recommended **security headers** via `SecurityHeaders`:
-
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `Referrer-Policy: strict-origin-when-cross-origin`
-- `Cross-Origin-Opener-Policy: same-origin`
-- `Cross-Origin-Resource-Policy: same-origin`
-- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
-
-### 🛡️ Example Secure Practices
-
-- **Access Token TTL**: 15 minutes (configurable).
-- **Refresh Token TTL**: 7 days (configurable).
-- **Issuer & Audience Validation**: prevents token misuse across apps.
-- **Secure Random Generators**: `generate_secure_token()` uses `secrets` for CSRF/email tokens.
+GreenSpark is a comprehensive, full-stack energy management solution that leverages artificial intelligence to analyze electricity bills and provide intelligent recommendations for optimizing energy consumption. Built with modern technologies and scalable architecture, it offers secure bill processing, appliance-level consumption estimation, and automated insights generation.
 
 ---
 
-✅ Together, these measures provide **defense in depth** against common attack vectors: credential stuffing, replay attacks, token theft, timing attacks, and misconfigured clients.
+## ✨ **Key Features**
+
+<table>
+<tr>
+<td>
+
+### 🔐 **Secure Authentication**
+- JWT with refresh token rotation
+- Redis-based token blacklist
+- Argon2 password hashing
+- Role-based access control
+
+</td>
+<td>
+
+### 📂 **Smart Bill Processing**
+- Presigned S3 uploads via MinIO
+- AI-powered parsing with Google Gemini
+- Structured JSON validation
+- Async processing pipeline
+
+</td>
+</tr>
+<tr>
+<td>
+
+### ⚡ **Intelligent Analytics**
+- Algorithmic appliance consumption breakdown
+- AI-generated energy-saving recommendations
+- Real-time insights and reporting
+- Historical data analysis
+
+</td>
+<td>
+
+### 🎨 **Modern Interface**
+- Responsive React frontend
+- Interactive charts and visualizations
+- Real-time status updates
+- Mobile-friendly design
+
+</td>
+</tr>
+</table>
+
+### 🚀 **Additional Capabilities**
+- **🧩 Scalable Architecture** → Dockerized multi-container deployment
+- **🚦 Rate Limiting & Caching** → Redis-powered performance optimization
+- **📊 Data Visualization** → Interactive charts with Recharts
+- **🛡️ Enterprise Security** → Comprehensive security headers and middleware
 
 ---
 
-🧵 Async Tasks (Celery)
+## 🛠️ **Technology Stack**
 
-Email processing tasks(Welcome, verfication, password-reset, email-change).
+### **Backend Infrastructure**
+```
+🚀 Framework         → FastAPI (async-first architecture)
+🗃️ Database          → PostgreSQL + SQLModel ORM
+⚡ Async Tasks       → Celery + Redis
+🗄️ File Storage      → MinIO (S3-compatible)
+🤖 AI Integration    → Google Gemini API
+🔒 Security          → JWT, Argon2, RBAC
+📦 Containerization  → Docker & Docker Compose
+📝 Dependency Mgmt   → Poetry
+```
 
-Bill processing pipeline:
-
-Parse bill with Gemini.
-
-Estimate appliances.
-
-Generate insights with Gemini.
-
-Tasks run asynchronously in worker containers.
-
-## 🛡️ Middleware
-
-The backend includes a robust middleware stack to ensure **security, performance, and maintainability**. The order of middleware execution is critical, and the project follows a carefully chosen strategy:
-
-### Correct Middleware Order Strategy
-
-1. **Logging & Error Handling**
-
-   - Outermost middleware to catch _all_ requests and errors.
-   - Ensures centralized logging and custom exception responses.
-
-2. **CORS (Cross-Origin Resource Sharing)**
-
-   - Runs early to properly handle `OPTIONS` preflight requests.
-   - Adds required CORS headers before other middleware.
-
-3. **Trusted Host**
-
-   - Validates the `Host` header against a whitelist.
-   - Helps prevent [Host Header Attacks](https://portswigger.net/web-security/host-header).
-
-4. **Security Headers**
-
-   - Adds secure headers (`X-Frame-Options`, `Content-Security-Policy`, etc.).
-   - Enhances app protection against common attacks.
-
-5. **GZip Compression**
-
-   - Compresses large responses for performance.
-   - Runs _after_ security headers to avoid conflicts.
-
-6. **Request Size Limiter**
-
-   - Innermost middleware to reject overly large request bodies early.
-   - Protects the server from DoS attacks and resource abuse.
-
-### Custom Middleware Highlights
-
-- **Custom Exception Handler**: Centralized error format for all API responses.
-- **Structured Logging**: Captures request/response cycle with correlation IDs.
-- **Security Layer**: Extra checks on headers, body size, and access patterns.
+### **Frontend Experience**
+```
+⚛️ Framework         → React 18 + Vite
+🗂️ State Management  → Redux Toolkit + RTK Query
+🎨 Styling           → TailwindCSS + shadcn/ui
+🧭 Routing           → React Router DOM
+📊 Visualization     → Recharts
+🔔 Notifications     → Sonner
+🎭 Icons             → Lucide React
+```
 
 ---
 
-⚡ This structure ensures:
+## 🏗️ **Architecture Overview**
 
-- Errors are always logged and surfaced in a consistent format.
-- Security checks and headers are enforced early.
-- Heavy payloads are rejected before reaching business logic.
-- Performance is maximized with GZip and caching.
+<div align="center">
 
-## 🚨 Exception Handling
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        A[React App] --> B[Redux Store]
+        B --> C[RTK Query]
+    end
+    
+    subgraph "API Gateway"
+        D[FastAPI Router]
+    end
+    
+    subgraph "Business Logic"
+        E[Service Layer]
+        F[Repository Layer]
+    end
+    
+    subgraph "Data Layer"
+        G[PostgreSQL]
+        H[Redis Cache]
+        I[MinIO Storage]
+    end
+    
+    subgraph "AI & Processing"
+        J[Celery Workers]
+        K[Google Gemini API]
+    end
+    
+    A --> D
+    D --> E
+    E --> F
+    F --> G
+    F --> H
+    F --> I
+    E --> J
+    J --> K
+```
 
-The backend includes a **centralized, layered exception handling system** designed for consistency, security, and debuggability.
+</div>
 
-### 📂 Exception Architecture
+### 🧱 **Layered Backend Design**
 
-- **`exceptions.py`**
+| Layer | Responsibility | Components |
+|-------|----------------|------------|
+| **🌐 API Layer** | Request handling, validation, responses | FastAPI Routers |
+| **⚙️ Business Layer** | Domain logic, orchestration | Service Classes |
+| **🗄️ Data Layer** | CRUD operations, data access | Repository Pattern |
+| **🔧 Infrastructure** | External services, utilities | Redis, MinIO, Celery |
 
-  - Defines a structured hierarchy of custom exceptions.
-  - All exceptions inherit from a single base: `AppException`.
-  - Uses an `ErrorCode` enum to standardize error identifiers across the codebase.
-  - Provides `to_dict()` to serialize errors into a consistent JSON format.
+---
 
-- **`exception_utils.py`**
+## 🔐 **Security Framework**
 
-  - Provides helper utilities for raising and handling exceptions.
-  - `handle_exceptions`: Decorator that wraps functions (sync or async) and converts unknown errors into structured `AppException`s.
-  - `raise_for_status`: Utility to raise exceptions conditionally (e.g., `raise_for_status(user is None, ResourceNotFound, resource_id=id)`).
+<details>
+<summary><strong>🛡️ Click to expand security features</strong></summary>
 
-- **`exception_handler.py`**
+### **Authentication & Authorization**
+- ✅ **JWT Token Management** with access/refresh token rotation
+- ✅ **Multi-layered Token Types** (access, refresh, email verification, password reset)
+- ✅ **Real-time Token Revocation** via Redis blacklist
+- ✅ **Role-Based Access Control** with hierarchical permissions
+- ✅ **Brute Force Protection** with configurable rate limiting
 
-  - Central registry for FastAPI exception handlers.
-  - Converts framework-level and unhandled exceptions into **uniform JSON responses**.
-  - Includes structured logging for observability.
+### **Password Security**
+- ✅ **Argon2 Hashing** (preferred) with bcrypt fallback
+- ✅ **Automatic Rehashing** for outdated parameters
+- ✅ **Timing Attack Protection** with constant-time comparison
+- ✅ **Transparent Security Upgrades** without user disruption
 
-### 🛠️ Exception Flow
+### **Security Headers**
+```http
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+```
 
-1. **Custom Exceptions (`AppException`)**
+### **Token Configuration**
+- 🕐 **Access Token TTL**: 15 minutes
+- 🕕 **Refresh Token TTL**: 7 days
+- 🔄 **Clock Skew Tolerance**: Configurable leeway
+- 🎯 **Audience Validation**: Prevents cross-app token misuse
 
-   - Application-specific errors such as authentication, authorization, and resource not found.
-   - Example: `InvalidCredentials` returns `401 Unauthorized` with error code `INVALID_CREDENTIALS`.
+</details>
 
-2. **Validation Exceptions**
+---
 
-   - Catches FastAPI/Pydantic validation errors.
-   - Normalizes them into a JSON format with `field`, `message`, `type`, and optional `context`.
+## 🚦 **Middleware Stack**
 
-3. **HTTP Exceptions**
+<details>
+<summary><strong>⚙️ Click to expand middleware architecture</strong></summary>
 
-   - Converts Starlette’s native `HTTPException` into the same structured JSON format.
+Our middleware follows a carefully orchestrated execution order for optimal security and performance:
 
-4. **Unhandled Exceptions**
+```
+1. 📝 Logging & Error Handling    → Outermost layer for comprehensive monitoring
+2. 🌐 CORS Management             → Early CORS header processing
+3. 🛡️ Trusted Host Validation    → Host header attack prevention
+4. 🔒 Security Headers            → Defense-in-depth security measures
+5. 📦 GZip Compression           → Response optimization
+6. 📏 Request Size Limiting      → DoS protection (innermost)
+```
 
-   - Captures any unexpected errors.
-   - Generates a unique `error_id` (UUID) for tracking in logs and client responses.
-   - Prevents internal stack traces from leaking to clients.
+### **Custom Middleware Features**
+- **🎯 Centralized Exception Handling** → Consistent error responses
+- **📊 Structured Logging** → Request correlation with unique IDs
+- **🛡️ Security Layer** → Advanced header and access pattern validation
+- **⚡ Performance Optimization** → Intelligent caching and compression
 
-### 📊 Example Error Response
+</details>
 
-```json
+---
+
+## 🚨 **Exception Handling System**
+
+<details>
+<summary><strong>🔧 Click to expand error management</strong></summary>
+
+### **Layered Exception Architecture**
+
+```python
+# Consistent Error Response Format
 {
   "error": {
     "code": "INVALID_CREDENTIALS",
-    "message": "Incorrect email or password",
+    "message": "Incorrect email or password", 
     "status_code": 401,
-    "context": {}
+    "context": {},
+    "error_id": "uuid-for-tracking"
   }
 }
 ```
 
-### ✅ Benefits
+### **Exception Flow**
+1. **🎯 Custom App Exceptions** → Business logic errors with structured codes
+2. **✅ Validation Exceptions** → FastAPI/Pydantic validation normalization
+3. **🌐 HTTP Exceptions** → Starlette HTTP error standardization
+4. **🚨 Unhandled Exceptions** → Safe fallback with tracking IDs
 
-- **Consistency**: All errors follow the same JSON format.
-- **Debuggability**: Errors are logged with rich context (status, method, path, error_id).
-- **Safety**: Internal errors never leak sensitive details.
-- **Flexibility**: New exceptions can be added by subclassing `AppException`.
+### **Benefits**
+- ✅ **Consistency** → Unified JSON error format
+- 🔍 **Debuggability** → Rich logging with context
+- 🛡️ **Security** → No internal detail leakage
+- 🔧 **Extensibility** → Easy custom exception addition
 
-🗄️ Database & Alembic
+</details>
 
-Models built with SQLModel.
-Schemas built with Pydantic for Validation.
+---
 
-Alembic handles migrations:
+## 🧵 **Async Task Processing**
 
-poetry run alembic revision --autogenerate -m "your message"
+<div align="center">
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as API
+    participant C as Celery
+    participant G as Gemini AI
+    participant D as Database
+    
+    U->>A: Upload Bill
+    A->>C: Queue Processing Task
+    A-->>U: Return Task ID
+    
+    C->>G: Parse Bill Content
+    G-->>C: Structured Data
+    
+    C->>C: Estimate Appliances
+    C->>G: Generate Insights
+    G-->>C: AI Recommendations
+    
+    C->>D: Store Results
+    C-->>A: Task Complete
+    A-->>U: Notify Completion
+```
+
+</div>
+
+### **Async Pipeline Features**
+- 📧 **Email Processing** → Welcome, verification, password reset workflows
+- 📄 **Bill Processing** → AI parsing, appliance estimation, insight generation
+- ⚡ **Worker Scalability** → Horizontal scaling with Docker containers
+- 📊 **Task Monitoring** → Real-time status tracking and progress updates
+
+---
+
+## 📊 **Data Management**
+
+### **Database Architecture**
+- **🗃️ PostgreSQL** → Primary data store with ACID compliance
+- **📝 SQLModel** → Type-safe ORM with Pydantic integration
+- **🔄 Alembic Migrations** → Version-controlled schema evolution
+- **✅ Pydantic Schemas** → Robust data validation and serialization
+
+### **Migration Management**
+```bash
+# Generate new migration
+poetry run alembic revision --autogenerate -m "description"
+
+# Apply migrations
 poetry run alembic upgrade head
 
-Developers must push their own migrations when models changes occur.
+# View migration history
+poetry run alembic history
+```
 
-🖥️ Frontend Architecture & Features
-🔑 Auth & Session
+---
 
-JWT-based with auto-refresh via RTK Query middleware.
+## 🎨 **Frontend Architecture**
 
-Session persistence with localStorage + Redux.
+### **State Management Strategy**
+```
+📦 Redux Toolkit Store
+├── 🔐 authSlice        → Authentication state
+├── 🎨 uiSlice          → UI preferences & alerts
+├── 📊 authApi          → Authentication endpoints
+├── 👤 userApi          → User management
+├── 📄 billApi          → Bill operations
+├── ⚡ applianceApi     → Appliance management
+└── 💡 insightApi       → Insights & analytics
+```
 
-Secure logout clears Redux state + Redis blacklist.
+### **UI Components & Features**
+- **📱 Responsive Design** → Mobile-first approach with TailwindCSS
+- **📊 Interactive Charts** → Recharts with custom legends and layouts
+- **⏳ Loading States** → Skeleton loaders for seamless UX
+- **🔄 Real-time Updates** → Polling for long-running tasks
+- **🎭 Modern UI** → shadcn/ui components with Lucide icons
 
-🧩 State & API Layer
+---
 
-Redux Toolkit slices: authSlice, uiSlice.
+## 🚀 **Getting Started**
 
-RTK Query slices: authApi, userApi, billApi, applianceApi, insightApi.
+### **Prerequisites**
+- 🐳 Docker & Docker Compose
+- 🐍 Python 3.11+
+- 📦 Node.js 18+
+- 📝 Poetry (Python dependency management)
 
-Automatic caching, refetching, and error handling.
-
-📊 Data-Driven UI
-
-Bills Page → Upload & manage bills (with status updates).
-
-Appliances Page → CRUD appliances per bill + quick stats.
-
-Insights Page → Long-running tasks with polling.
-
-Overview Dashboard → Charts powered by derived frontend logic.
-
-🎨 Visualization
-
-Recharts for pie, bar, scatter charts.
-
-Legend wrapping + custom layouts for readability.
-
-Skeleton loaders for seamless UX.
-
-🏗️ Running Locally
-1️⃣ Clone Repository
+### **1️⃣ Clone Repository**
+```bash
 git clone https://github.com/vansh212121/Green-Spark.git
 cd greenspark
+```
 
-2️⃣ Backend Setup
+### **2️⃣ Backend Setup**
+```bash
 cd backend
 
 # Install dependencies
-
 poetry install
 
-# Set environment variables (example: .env file)
-
+# Copy environment template
 cp .env.example .env
+# Edit .env with your configuration
 
-# Run migrations
+# Start infrastructure services
+docker-compose up -d postgres redis minio
 
+# Apply database migrations
 poetry run alembic upgrade head
 
-# Start services
+# Start development server
+poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-docker-compose up -d
+**🌐 Backend URL:** `http://localhost:8000/api/v1`
+**📚 API Docs:** `http://localhost:8000/docs`
 
-Backend will be available at http://127.0.0.1:8000/api/v1
-
-3️⃣ Frontend Setup
+### **3️⃣ Frontend Setup**
+```bash
 cd frontend
 
 # Install dependencies
-
 npm install
 
-# Start dev server
+# Copy environment template
+cp .env.example .env.local
+# Configure your environment variables
 
+# Start development server
 npm run dev
+```
 
-Frontend will be available at http://127.0.0.1:5173
+**🌐 Frontend URL:** `http://localhost:5173`
 
-✅ Final Checklist for Contributors
+### **4️⃣ Production Deployment**
+```bash
+# Build and deploy all services
+docker-compose -f docker-compose.prod.yml up -d
 
-Run poetry install before starting backend.
+# Monitor logs
+docker-compose logs -f
+```
 
-Apply database migrations manually via Alembic.
+---
 
-Ensure Docker services (postgres, redis, minio) are running.
+## 📝 **Development Guidelines**
 
-Configure .env files for both frontend & backend.
+### **Backend Development**
+- ✅ Run `poetry install` before starting development
+- ✅ Apply database migrations manually via Alembic
+- ✅ Ensure Docker services (PostgreSQL, Redis, MinIO) are running
+- ✅ Configure `.env` files with proper values
+- ✅ Follow FastAPI best practices and dependency injection patterns
 
-📌 Status
+### **Frontend Development**
+- ✅ Use TypeScript for type safety
+- ✅ Follow Redux Toolkit patterns for state management
+- ✅ Implement proper error boundaries
+- ✅ Use TailwindCSS utility classes consistently
+- ✅ Add proper loading states and error handling
 
-✅ Backend: Complete with DI, caching, rate-limiting, exception handling, async pipeline.
+### **Code Quality**
+- 🔍 **Linting** → Pre-commit hooks with Black, isort, flake8
+- 🧪 **Testing** → Pytest for backend, Jest for frontend
+- 📝 **Documentation** → Comprehensive docstrings and comments
+- 🔄 **CI/CD** → Automated testing and deployment pipelines
 
-✅ Frontend: Complete with protected routes, Redux, charts, polling, error handling.
+---
 
-✅ Deployment: Ready for Dockerized deployment.
+## 📈 **Project Status**
 
-📄 License
+<div align="center">
 
-MIT License – Free to use and modify.
+| Component | Status | Features |
+|-----------|--------|----------|
+| 🔧 **Backend** | ✅ Complete | DI, caching, rate-limiting, async pipeline |
+| 🎨 **Frontend** | ✅ Complete | Protected routes, Redux, charts, polling |
+| 🐳 **Deployment** | ✅ Ready | Docker, multi-container orchestration |
+| 📚 **Documentation** | ✅ Comprehensive | API docs, architecture guides |
+| 🧪 **Testing** | 🚧 In Progress | Unit tests, integration tests |
+| 📊 **Monitoring** | 🔮 Planned | Logging, metrics, health checks |
+
+</div>
+
+---
+
+## 🤝 **Contributing**
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### **Quick Start for Contributors**
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Add tests for new functionality
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+---
+
+## 📄 **License**
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 **Acknowledgments**
+
+- **FastAPI** for the excellent async framework
+- **Google Gemini** for AI-powered bill parsing
+- **Recharts** for beautiful data visualizations
+- **TailwindCSS** for utility-first styling
+- **Redis** for caching and task queuing
+
+---
+
+<div align="center">
+
+**⚡ Built with passion for sustainable energy management ⚡**
+
+[![GitHub stars](https://img.shields.io/github/stars/vansh212121/Green-Spark?style=social)](https://github.com/vansh212121/Green-Spark/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/vansh212121/Green-Spark?style=social)](https://github.com/vansh212121/Green-Spark/network)
+[![GitHub issues](https://img.shields.io/github/issues/vansh212121/Green-Spark)](https://github.com/vansh212121/Green-Spark/issues)
+
+</div>
