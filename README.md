@@ -411,8 +411,7 @@ npm run dev
 
 **🌐 Frontend URL:** `http://localhost:5173`
 
-````markdown
-**⚙️ Environment Configuration**
+### **4️⃣⚙️ Environment Configuration**
 
 **Backend Environment Variables (.env)**
 
