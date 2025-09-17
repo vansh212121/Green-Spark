@@ -449,12 +449,12 @@ api_key=yourapikey
 ### **Backend Development**
 - ✅ Run `poetry install` before starting development
 - ✅ Apply database migrations manually via Alembic
-- ✅ Ensure Docker services (PostgreSQL, Redis, MinIO) are running
+- ✅ Ensure Docker services (PostgreSQL, Redis, MinIO, api) are running
 - ✅ Configure `.env` files with proper values
 - ✅ Follow FastAPI best practices and dependency injection patterns
 
 ### **Frontend Development**
-- ✅ Use TypeScript for type safety
+- ✅ Use Javascript
 - ✅ Follow Redux Toolkit patterns for state management
 - ✅ Implement proper error boundaries
 - ✅ Use TailwindCSS utility classes consistently
