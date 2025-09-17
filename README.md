@@ -28,6 +28,7 @@ GreenSpark is a comprehensive, full-stack energy management solution that levera
 <td>
 
 ### 🔐 **Secure Authentication**
+
 - JWT with refresh token rotation
 - Redis-based token blacklist
 - Argon2 password hashing
@@ -37,6 +38,7 @@ GreenSpark is a comprehensive, full-stack energy management solution that levera
 <td>
 
 ### 📂 **Smart Bill Processing**
+
 - Presigned S3 uploads via MinIO
 - AI-powered parsing with Google Gemini
 - Structured JSON validation
@@ -48,6 +50,7 @@ GreenSpark is a comprehensive, full-stack energy management solution that levera
 <td>
 
 ### ⚡ **Intelligent Analytics**
+
 - Algorithmic appliance consumption breakdown
 - AI-generated energy-saving recommendations
 - Real-time insights and reporting
@@ -57,6 +60,7 @@ GreenSpark is a comprehensive, full-stack energy management solution that levera
 <td>
 
 ### 🎨 **Modern Interface**
+
 - Responsive React frontend
 - Interactive charts and visualizations
 - Real-time status updates
@@ -67,6 +71,7 @@ GreenSpark is a comprehensive, full-stack energy management solution that levera
 </table>
 
 ### 🚀 **Additional Capabilities**
+
 - **🧩 Scalable Architecture** → Dockerized multi-container deployment
 - **🚦 Rate Limiting & Caching** → Redis-powered performance optimization
 - **📊 Data Visualization** → Interactive charts with Recharts
@@ -77,6 +82,7 @@ GreenSpark is a comprehensive, full-stack energy management solution that levera
 ## 🛠️ **Technology Stack**
 
 ### **Backend Infrastructure**
+
 ```
 🚀 Framework         → FastAPI (async-first architecture)
 🗃️ Database          → PostgreSQL + SQLModel ORM
@@ -89,6 +95,7 @@ GreenSpark is a comprehensive, full-stack energy management solution that levera
 ```
 
 ### **Frontend Experience**
+
 ```
 ⚛️ Framework         → React 18 + Vite
 🗂️ State Management  → Redux Toolkit + RTK Query
@@ -111,27 +118,27 @@ graph TB
         A[React App] --> B[Redux Store]
         B --> C[RTK Query]
     end
-    
+
     subgraph "API Gateway"
         D[FastAPI Router]
     end
-    
+
     subgraph "Business Logic"
         E[Service Layer]
         F[Repository Layer]
     end
-    
+
     subgraph "Data Layer"
         G[PostgreSQL]
         H[Redis Cache]
         I[MinIO Storage]
     end
-    
+
     subgraph "AI & Processing"
         J[Celery Workers]
         K[Google Gemini API]
     end
-    
+
     A --> D
     D --> E
     E --> F
@@ -146,12 +153,12 @@ graph TB
 
 ### 🧱 **Layered Backend Design**
 
-| Layer | Responsibility | Components |
-|-------|----------------|------------|
-| **🌐 API Layer** | Request handling, validation, responses | FastAPI Routers |
-| **⚙️ Business Layer** | Domain logic, orchestration | Service Classes |
-| **🗄️ Data Layer** | CRUD operations, data access | Repository Pattern |
-| **🔧 Infrastructure** | External services, utilities | Redis, MinIO, Celery |
+| Layer                 | Responsibility                          | Components           |
+| --------------------- | --------------------------------------- | -------------------- |
+| **🌐 API Layer**      | Request handling, validation, responses | FastAPI Routers      |
+| **⚙️ Business Layer** | Domain logic, orchestration             | Service Classes      |
+| **🗄️ Data Layer**     | CRUD operations, data access            | Repository Pattern   |
+| **🔧 Infrastructure** | External services, utilities            | Redis, MinIO, Celery |
 
 ---
 
@@ -161,6 +168,7 @@ graph TB
 <summary><strong>🛡️ Click to expand security features</strong></summary>
 
 ### **Authentication & Authorization**
+
 - ✅ **JWT Token Management** with access/refresh token rotation
 - ✅ **Multi-layered Token Types** (access, refresh, email verification, password reset)
 - ✅ **Real-time Token Revocation** via Redis blacklist
@@ -168,12 +176,14 @@ graph TB
 - ✅ **Brute Force Protection** with configurable rate limiting
 
 ### **Password Security**
+
 - ✅ **Argon2 Hashing** (preferred) with bcrypt fallback
 - ✅ **Automatic Rehashing** for outdated parameters
 - ✅ **Timing Attack Protection** with constant-time comparison
 - ✅ **Transparent Security Upgrades** without user disruption
 
 ### **Security Headers**
+
 ```http
 X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
@@ -184,6 +194,7 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 ```
 
 ### **Token Configuration**
+
 - 🕐 **Access Token TTL**: 15 minutes
 - 🕕 **Refresh Token TTL**: 7 days
 - 🔄 **Clock Skew Tolerance**: Configurable leeway
@@ -210,6 +221,7 @@ Our middleware follows a carefully orchestrated execution order for optimal secu
 ```
 
 ### **Custom Middleware Features**
+
 - **🎯 Centralized Exception Handling** → Consistent error responses
 - **📊 Structured Logging** → Request correlation with unique IDs
 - **🛡️ Security Layer** → Advanced header and access pattern validation
@@ -231,7 +243,7 @@ Our middleware follows a carefully orchestrated execution order for optimal secu
 {
   "error": {
     "code": "INVALID_CREDENTIALS",
-    "message": "Incorrect email or password", 
+    "message": "Incorrect email or password",
     "status_code": 401,
     "context": {},
     "error_id": "uuid-for-tracking"
@@ -240,12 +252,14 @@ Our middleware follows a carefully orchestrated execution order for optimal secu
 ```
 
 ### **Exception Flow**
+
 1. **🎯 Custom App Exceptions** → Business logic errors with structured codes
 2. **✅ Validation Exceptions** → FastAPI/Pydantic validation normalization
 3. **🌐 HTTP Exceptions** → Starlette HTTP error standardization
 4. **🚨 Unhandled Exceptions** → Safe fallback with tracking IDs
 
 ### **Benefits**
+
 - ✅ **Consistency** → Unified JSON error format
 - 🔍 **Debuggability** → Rich logging with context
 - 🛡️ **Security** → No internal detail leakage
@@ -266,18 +280,18 @@ sequenceDiagram
     participant C as Celery
     participant G as Gemini AI
     participant D as Database
-    
+
     U->>A: Upload Bill
     A->>C: Queue Processing Task
     A-->>U: Return Task ID
-    
+
     C->>G: Parse Bill Content
     G-->>C: Structured Data
-    
+
     C->>C: Estimate Appliances
     C->>G: Generate Insights
     G-->>C: AI Recommendations
-    
+
     C->>D: Store Results
     C-->>A: Task Complete
     A-->>U: Notify Completion
@@ -286,6 +300,7 @@ sequenceDiagram
 </div>
 
 ### **Async Pipeline Features**
+
 - 📧 **Email Processing** → Welcome, verification, password reset workflows
 - 📄 **Bill Processing** → AI parsing, appliance estimation, insight generation
 - ⚡ **Worker Scalability** → Horizontal scaling with Docker containers
@@ -296,12 +311,14 @@ sequenceDiagram
 ## 📊 **Data Management**
 
 ### **Database Architecture**
+
 - **🗃️ PostgreSQL** → Primary data store with ACID compliance
 - **📝 SQLModel** → Type-safe ORM with Pydantic integration
 - **🔄 Alembic Migrations** → Version-controlled schema evolution
 - **✅ Pydantic Schemas** → Robust data validation and serialization
 
 ### **Migration Management**
+
 ```bash
 # Generate new migration
 poetry run alembic revision --autogenerate -m "description"
@@ -318,6 +335,7 @@ poetry run alembic history
 ## 🎨 **Frontend Architecture**
 
 ### **State Management Strategy**
+
 ```
 📦 Redux Toolkit Store
 ├── 🔐 authSlice        → Authentication state
@@ -330,6 +348,7 @@ poetry run alembic history
 ```
 
 ### **UI Components & Features**
+
 - **📱 Responsive Design** → Mobile-first approach with TailwindCSS
 - **📊 Interactive Charts** → Recharts with custom legends and layouts
 - **⏳ Loading States** → Skeleton loaders for seamless UX
@@ -341,20 +360,22 @@ poetry run alembic history
 ## 🚀 **Getting Started**
 
 ### **Prerequisites**
+
 - 🐳 Docker & Docker Compose
 - 🐍 Python 3.11+
 - 📦 Node.js 18+
 - 📝 Poetry (Python dependency management)
 
 ### **1️⃣ Clone Repository**
+
 ```bash
 git clone https://github.com/vansh212121/Green-Spark.git
 cd greenspark
 ```
 
 ### **2️⃣ Backend Setup**
+
 ```bash
-cd backend
 
 # Install dependencies
 poetry install
@@ -377,15 +398,12 @@ poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 **📚 API Docs:** `http://localhost:8000/docs`
 
 ### **3️⃣ Frontend Setup**
+
 ```bash
 cd frontend
 
 # Install dependencies
 npm install
-
-# Copy environment template
-cp .env.example .env.local
-# Configure your environment variables
 
 # Start development server
 npm run dev
@@ -393,20 +411,12 @@ npm run dev
 
 **🌐 Frontend URL:** `http://localhost:5173`
 
-### **4️⃣ Production Deployment**
-```bash
-# Build and deploy all services
-docker-compose -f docker-compose.prod.yml up -d
-
-# Monitor logs
-docker-compose logs -f
-```
-
 ---
 
 ## 📝 **Development Guidelines**
 
 ### **Backend Development**
+
 - ✅ Run `poetry install` before starting development
 - ✅ Apply database migrations manually via Alembic
 - ✅ Ensure Docker services (PostgreSQL, Redis, MinIO) are running
@@ -414,6 +424,7 @@ docker-compose logs -f
 - ✅ Follow FastAPI best practices and dependency injection patterns
 
 ### **Frontend Development**
+
 - ✅ Use TypeScript for type safety
 - ✅ Follow Redux Toolkit patterns for state management
 - ✅ Implement proper error boundaries
@@ -421,6 +432,7 @@ docker-compose logs -f
 - ✅ Add proper loading states and error handling
 
 ### **Code Quality**
+
 - 🔍 **Linting** → Pre-commit hooks with Black, isort, flake8
 - 🧪 **Testing** → Pytest for backend, Jest for frontend
 - 📝 **Documentation** → Comprehensive docstrings and comments
@@ -432,31 +444,16 @@ docker-compose logs -f
 
 <div align="center">
 
-| Component | Status | Features |
-|-----------|--------|----------|
-| 🔧 **Backend** | ✅ Complete | DI, caching, rate-limiting, async pipeline |
-| 🎨 **Frontend** | ✅ Complete | Protected routes, Redux, charts, polling |
-| 🐳 **Deployment** | ✅ Ready | Docker, multi-container orchestration |
-| 📚 **Documentation** | ✅ Comprehensive | API docs, architecture guides |
-| 🧪 **Testing** | 🚧 In Progress | Unit tests, integration tests |
-| 📊 **Monitoring** | 🔮 Planned | Logging, metrics, health checks |
+| Component            | Status           | Features                                   |
+| -------------------- | ---------------- | ------------------------------------------ |
+| 🔧 **Backend**       | ✅ Complete      | DI, caching, rate-limiting, async pipeline |
+| 🎨 **Frontend**      | ✅ Complete      | Protected routes, Redux, charts, polling   |
+| 🐳 **Deployment**    | ✅ Ready         | Docker, multi-container orchestration      |
+| 📚 **Documentation** | ✅ Comprehensive | API docs, architecture guides              |
+| 🧪 **Testing**       | 🚧 In Progress   | Unit tests, integration tests              |
+| 📊 **Monitoring**    | 🔮 Planned       | Logging, metrics, health checks            |
 
 </div>
-
----
-
-## 🤝 **Contributing**
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### **Quick Start for Contributors**
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for new functionality
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
 
 ---
 
