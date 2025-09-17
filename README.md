@@ -454,20 +454,6 @@ MAIL_SERVER=smtp.gmail.com
 # Google Gemini API Key
 api_key=AIzaSyDVZO_V3ywfsiqa_Ya4L9PQ1NssPRcsOW8
 ```
-````
-
-### **Frontend Environment Variables (.env.local)**
-
-Create a `.env.local` file in the `frontend/` directory:
-
-```bash
-# Backend API URL
-VITE_API_URL=http://localhost:8000/api/v1
-
-# App Configuration
-VITE_APP_NAME=GreenSpark
-VITE_APP_VERSION=1.0.0
-```
 
 ### **🔐 Security Notes**
 
