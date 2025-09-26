@@ -6,9 +6,8 @@ Handles user authentication, registration, and token management.
 
 import logging
 import uuid
-from typing import Optional, Dict
+from typing import Dict
 
-from fastapi import BackgroundTasks
 from sqlmodel.ext.asyncio.session import AsyncSession
 from datetime import datetime, timezone, timedelta
 from src.app.crud.user_crud import user_repository

@@ -62,12 +62,12 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
 
     # --- Email Settings ---
-    MAIL_FROM_NAME: str = "GreenSpark"
-    MAIL_FROM: str = "arora199vash@gmail.com"
-    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_FROM_NAME: str 
+    MAIL_FROM: str
+    MAIL_SERVER: str 
     MAIL_PORT: int = 587
-    MAIL_USERNAME: str = "arora199vash@gmail.com"
-    MAIL_PASSWORD: str = "cirr xfng uthm gtpn"
+    MAIL_USERNAME: str 
+    MAIL_PASSWORD: str 
 
     # --- File Storage (S3/Minio) ---
     MINIO_ROOT_USER: str
